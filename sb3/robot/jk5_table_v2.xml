@@ -1,0 +1,24 @@
+<mujoco model="jk5">
+    <include file="basic_env.xml"/>
+    <include file="robot.xml"/>
+    <worldbody>
+<!--desk1-->
+<!--        <body name="table" pos="-0.5 0 0.0345">-->
+<!--            <geom size=".25 .2 .0345" pos ="0 0 0" type="box"/>-->
+<!--            <inertial pos="0 0 0" mass="1000" diaginertia="0 0 0" />-->
+<!--        </body>-->
+<!--desk2-->
+<!--        <body name="sintable" pos="-0.5 0 0.079">-->
+<!--            <geom conaffinity="1" condim="3" hfield="sin_floor" name="sin" pos="0 0 0" rgba="0.8 0.9 0.8 1" -->
+<!--                  type="hfield" friction="0.1 0.1 0.1" solimp="0.1 0.3 0.001 0.5 2" solref="-20 -1" />-->
+<!--            <geom  hfield="sin_floor" name="sin" pos="0 0 0" rgba="0.8 0.9 0.8 1" type="hfield" />-->
+<!--            <inertial pos="0 0 0" mass="1000" diaginertia="0 0 0" />-->
+<!--        </body>-->
+<!--desk3-->
+        <body name="table" pos="-0.6 0 0.035">
+            <geom size=".4 .3 .035" pos ="0 0 0" type="box" solimp="0.1 0.3 0.001 0.5 2" solref="-50000.0 -0.1"
+                  rgba="1 1 1 0.5"  group="1" condim="4"/>
+            <inertial pos="0 0 0" mass="1000" diaginertia="0 0 0" />
+        </body>
+    </worldbody>
+</mujoco>
