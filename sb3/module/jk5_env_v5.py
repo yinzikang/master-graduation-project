@@ -2,8 +2,7 @@
 # -*- encoding: utf-8 -*-
 """基于gym.Env的实现，用于sb3环境
 
-继承自v3,整合力矩控制以及轨迹规划
-将旋转表示为四元数
+继承自v4,分割机器人与控制器
 
 Write typical usage example here
 
@@ -17,13 +16,13 @@ import numpy
 
 sys.path.append('..')
 import PyKDL as kdl
-import numpy as np
 import mujoco as mp
 import matplotlib.pyplot as plt
 
 from utils.custom_logx import EpisodeLogger
 from utils.custom_viewer import EnvViewer
-from module.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_slerp
+from module.transformations import quaternion_matrix, quaternion_slerp
+from module.controller import *
 
 from gym import spaces, Env
 import copy
@@ -31,7 +30,8 @@ from spinup.utils.mpi_tools import proc_id
 from stable_baselines3.common.env_checker import check_env
 
 
-class Jk5StickEnv:
+# 基础的机器人部分
+class Jk5StickRobot:
 
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias):
         # robot part #########################################################################
@@ -110,13 +110,19 @@ class Jk5StickEnv:
                         kdl_mat[2, 0], kdl_mat[2, 1], kdl_mat[2, 2]]).reshape(3, 3)
         return pos, mat
 
-    def get_xpos_xvel(self):
+    def get_xposture_xvel(self):
+        # 位置
         xpos = np.array(self.data.site(self.eef_name).xpos)
+        # 姿态
         xmat = np.array(self.data.site(self.eef_name).xmat).reshape(3, 3)
+        mat44 = np.eye(4)
+        mat44[:3, :3] = xmat
+        xquat = quaternion_from_matrix(mat44)
+        # 速度
         xvel = np.ndarray(shape=(6,), dtype=np.float64, order='C')
         mp.mj_objectVelocity(self.mjc_model, self.data, mp.mjtObj.mjOBJ_SITE, self.eef_id, xvel, False)
-        xvelp, xvelr = xvel[3:], xvel[:3]
-        return xpos, xmat, xvelp, xvelr
+        xvel = xvel[[3, 4, 5, 0, 1, 2]]  # 把线速度放在前面
+        return xpos, xmat, xquat, xvel
 
     def get_qpos_qvel(self):
         qpos = np.array([self.data.joint(joint_name).qpos for joint_name in self.joint_list]).reshape(-1)
@@ -160,32 +166,6 @@ class Jk5StickEnv:
         ik.CartToJnt(kdl_qpos_init_list, kdl_frame, kdl_joint_pos)
         return kdl_joint_pos
 
-    @staticmethod
-    def orientation_error_rotation_matrix(desired, current):
-        rc1 = current[0:3, 0]
-        rc2 = current[0:3, 1]
-        rc3 = current[0:3, 2]
-        rd1 = desired[0:3, 0]
-        rd2 = desired[0:3, 1]
-        rd3 = desired[0:3, 2]
-        error = 0.5 * (np.cross(rc1, rd1) + np.cross(rc2, rd2) + np.cross(rc3, rd3))
-        return error
-
-    @staticmethod
-    def orientation_error_quaternion(desired, current):
-        mat44 = np.eye(4)
-        mat44[:3, :3] = np.linalg.inv(current) @ desired
-        quat = quaternion_from_matrix(mat44)
-        error = current @ quat[:3].transpose()  # 向量+四元数，前三个当偏差
-        return error
-
-    @staticmethod
-    def generate_trajectory(cart_init_pos, cart_end_pos, dot_num):
-        trajectory = []
-        for i in range(dot_num):
-            trajectory.append(cart_init_pos + (cart_end_pos - cart_init_pos) / (dot_num - 1) * i)
-        return trajectory
-
     def get_mass_matrix(self):
         # 注意行列数与具体关节数不一定相等，且所需行列不一定相邻
         mass_matrix = np.ndarray(shape=(self.mjc_model.nv, self.mjc_model.nv), dtype=np.float64, order='C')
@@ -208,17 +188,13 @@ class Jk5StickEnv:
 
     def get_status(self):
         # 运动学状态
-        xpos, xmat, xpos_vel, xmat_vel = self.get_xpos_xvel()
-        mat44 = np.eye(4)
-        mat44[:3, :3] = xmat
-        quat = quaternion_from_matrix(mat44)
+        xpos, xmat, xquat, xvel = self.get_xposture_xvel()
         qpos, qvel = self.get_qpos_qvel()
 
         J_old = self.status['J']
         J = self.get_jacobian()
         Jd = self.get_jacobian_dot(J_old, J)
-        self.status.update(xpos=xpos, xmat=xmat, quat=quat, xpos_vel=xpos_vel, xmat_vel=xmat_vel, qpos=qpos, qvel=qvel,
-                           J_old=J_old, J=J, Jd=Jd)
+        self.status.update(xpos=xpos, xmat=xmat, xquat=xquat, xvel=xvel, qpos=qpos, qvel=qvel, J_old=J_old, J=J, Jd=Jd)
 
         # 动力学状态：关节空间、笛卡尔空间下的D、C、G
         D_q = self.get_mass_matrix()
@@ -239,48 +215,39 @@ class Jk5StickEnv:
             self.logger.store_buffer(contact_force_series=contact_force, nft_force_series=nft_force)
 
 
-class Jk5StickStiffnessEnv(Jk5StickEnv):
-    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias, step_num,
-                 desired_posture_list, desired_vel_list, desired_acc_list, desired_force_list,
-                 init_M, init_B, init_K, min_K, max_K):
+# 机器人+控制器
+class Jk5StickRobotWithController(Jk5StickRobot):
+    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                 controller_parameter, controller, orientation_error, step_num,
+                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list):
         super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias)
+        # 机器人
         self.initial_state = copy.deepcopy(self.data)
-        self.step_num = step_num
-        # impedance control part,阻抗参数 #####################################################
-        self.desired_posture_list = desired_posture_list.copy()
-        self.desired_vel_list = desired_vel_list.copy()
-        self.desired_acc_list = desired_acc_list.copy()
+        # 控制器
+        self.initial_controller_parameter = controller_parameter
+        self.controller_parameter = copy.deepcopy(self.initial_state)
+        self.controller = controller(orientation_error)
+
+        self.desired_xposture_list = desired_xposture_list.copy()
+        self.desired_xvel_list = desired_xvel_list.copy()
+        self.desired_xacc_list = desired_xacc_list.copy()
         self.desired_force_list = desired_force_list.copy()
 
-        self.init_M = init_M.copy()
-        self.init_B = init_B.copy()
-        self.init_K = init_K.copy()
-        self.min_K = min_K.copy()
-        self.max_K = max_K.copy()
-        self.wn = np.sqrt(self.init_K / np.diagonal(self.init_M))
-        self.damping_ratio = self.init_B / 2 / np.sqrt(self.init_K * np.diagonal(self.init_M))
-
-        self.M = None
-        self.B = None
-        self.K = None
-
+        self.step_num = step_num
         self.current_step = 0
 
     def get_status(self):
         super().get_status()
-        # 控制状态
-        desired_pos = self.desired_posture_list[self.current_step][:3]
-        desired_mat = self.desired_posture_list[self.current_step][3:].reshape(3, 3)
-        desired_vel = self.desired_vel_list[self.current_step]
-        desired_acc = self.desired_acc_list[self.current_step]
-
-        self.status.update(desired_pos=desired_pos, desired_mat=desired_mat,
-                           desired_vel=desired_vel, desired_acc=desired_acc)
-        tau = np.array(self.data.ctrl[:])
-        self.status.update(tau=tau)
+        self.status.update(controller_parameter=self.controller_parameter.copy(),
+                           desired_xpos=self.desired_xposture_list[self.current_step][:3],
+                           desired_xmat=self.desired_xposture_list[self.current_step][3:].reshape(3, 3),
+                           desired_xvel=self.desired_xvel_list[self.current_step],
+                           desired_xacc=self.desired_xacc_list[self.current_step],
+                           tau=np.array(self.data.ctrl[:]))
 
         if hasattr(self, 'logger'):
-            self.logger.store_buffer(K_series=self.K.copy(), tau_series=tau)
+            self.logger.store_buffer(K_series=self.status["controller_parameter"].copy(),
+                                     tau_series=self.status["tau"].copy())
 
     def reset(self):
         """
@@ -312,14 +279,12 @@ class Jk5StickStiffnessEnv(Jk5StickEnv):
 
         mp.mj_forward(self.mjc_model, self.data)
 
-        self.status.update(J=self.get_jacobian())
-        self.get_status()
-
         # impedance control reset
-        self.M = self.init_M.copy()
-        self.B = self.init_B.copy()
-        self.K = self.init_K.copy()
+        self.controller_parameter = copy.deepcopy(self.initial_controller_parameter)
 
+        self.status.update(J=self.get_jacobian())
+        self.status.update(timestep=self.mjc_model.opt.timestep)
+        self.get_status()
         # algorithm reset ##################################################################
         # 步数更新
         self.current_step = 0
@@ -328,18 +293,7 @@ class Jk5StickStiffnessEnv(Jk5StickEnv):
         """
         控制器运行一次
         """
-        control_mode = 1
-        orientation_error = self.orientation_error_rotation_matrix
-        if control_mode == 1:
-            # 计算力矩控制器
-            tau = self.computed_torque_controller(orientation_error)
-        elif control_mode == 2:
-            # 阻抗控制器
-            tau = self.impedance_controller(orientation_error)
-        else:
-            # 导纳控制率
-            tau = self.admittance_controller(orientation_error)
-
+        tau = self.controller.step(self.status)
         # 执行
         self.data.ctrl[:] = tau
         mp.mj_step2(self.mjc_model, self.data)
@@ -347,99 +301,6 @@ class Jk5StickStiffnessEnv(Jk5StickEnv):
 
         self.get_status()
         self.current_step += 1
-
-    # 迪卡尔空间下计算力矩控制器
-    def computed_torque_controller(self,orientation_error):
-        # 状态
-        desired_pos = self.status['desired_pos']
-        desired_mat = self.status['desired_mat']
-        desired_vel = self.status['desired_vel']
-        desired_acc = self.status['desired_acc']
-        xpos = self.status['xpos']
-        xmat = self.status['xmat']
-        xpos_vel = self.status['xpos_vel']
-        xmat_vel = self.status['xmat_vel']
-
-        J = self.status['J']
-        D_x = self.status['D_x']
-        CG_x = self.status['CG_x']
-        contact_force = self.status['contact_force']
-
-        xposture_error = np.concatenate([desired_pos - xpos, orientation_error(desired_mat, xmat)])
-        xvel_error = desired_vel - np.concatenate([xpos_vel, xmat_vel])
-
-        wn = 20
-        damping_ratio = np.sqrt(2)
-        kp = wn * wn * np.ones(6, dtype=np.float64)
-        kd = 2 * damping_ratio * numpy.sqrt(kp)
-        V = desired_acc + np.multiply(kd, xvel_error) + np.multiply(kp, xposture_error)
-        F = np.dot(D_x, V) + CG_x - contact_force
-        # F = np.dot(D_x, V) + CG_x
-        tau = np.dot(J.T, F)
-
-        return tau
-
-    # 迪卡尔空间下阻抗控制器
-    def impedance_controller(self,orientation_error):
-        # 状态
-        desired_pos = self.status['desired_pos']
-        desired_mat = self.status['desired_mat']
-        desired_vel = self.status['desired_vel']
-        desired_acc = self.status['desired_acc']
-        xpos = self.status['xpos']
-        xmat = self.status['xmat']
-        xpos_vel = self.status['xpos_vel']
-        xmat_vel = self.status['xmat_vel']
-
-        J = self.status['J']
-        D_x = self.status['D_x']
-        CG_x = self.status['CG_x']
-        contact_force = self.status['contact_force']
-
-        xposture_error = np.concatenate([desired_pos - xpos, orientation_error(desired_mat, xmat)])
-        xvel_error = desired_vel - np.concatenate([xpos_vel, xmat_vel])
-
-        # 阻抗控制率
-        T = np.multiply(self.B, xvel_error) + np.multiply(self.K, xposture_error) + contact_force
-        V = desired_acc + np.dot(np.linalg.inv(self.M), T)
-        F = np.dot(D_x, V) + CG_x - contact_force
-        tau = np.dot(J.T, F)
-
-        return tau
-
-    # def admittance_controller(self,orientation_error):
-    #     # 状态
-    #     desired_pos = self.status['desired_pos']
-    #     desired_mat = self.status['desired_mat']
-    #     desired_vel = self.status['desired_vel']
-    #     desired_acc = self.status['desired_acc']
-    #     # xpos = self.status['xpos']
-    #     # xmat = self.status['xmat']
-    #     # xpos_vel = self.status['xpos_vel']
-    #     # xmat_vel = self.status['xmat_vel']
-    #
-    #     J = self.status['J']
-    #     D_x = self.status['D_x']
-    #     CG_x = self.status['CG_x']
-    #     contact_force = self.status['contact_force']
-    #
-    #     xposture_error = np.concatenate([desired_pos - xpos, orientation_error(desired_mat, xmat)])
-    #     xvel_error = desired_vel - np.concatenate([xpos_vel, xmat_vel])
-    #
-    #     T = np.multiply(self.B, xvel_error) + np.multiply(self.K, xposture_error)
-    #     xacc_error = np.dot(np.linalg.inv(self.M), -contact_force - T)
-    #     xvel_error += xacc_error * self.mjc_model.opt.timestep
-    #     xpos_error = xposture_error[:3] + xvel_error[:3] * self.mjc_model.opt.timestep
-    #     W = np.array([[0., -xvel_error[6], xvel_error[5]],
-    #                   [xvel_error[6], 0., -xvel_error[4]],
-    #                   [-xvel_error[5], xvel_error[4], 0.]])
-    #     xmat_error += W * self.mjc_model.opt.timestep
-    #     compliant_acc = desired_acc + xacc_error
-    #     compliant_vel = desired_vel + xvel_error
-    #     compliant_pos = desired_pos + xpos_error
-    #     compliant_mat = desired_mat + xmat_error
-    #
-    #     return 0
 
     def logger_init(self, output_dir=None):
         if proc_id() == 0:
@@ -455,16 +316,24 @@ class Jk5StickStiffnessEnv(Jk5StickEnv):
         self.viewer.render()
 
 
-class TrainEnv(Jk5StickStiffnessEnv, Env):
+# 机器人变阻抗控制
+class TrainEnv(Jk5StickRobotWithController, Env):
 
-    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias, step_num, rl_frequency, observation_range,
-                 desired_posture_list, desired_vel_list, desired_acc_list, desired_force_list,
-                 init_M, init_B, init_K, min_K, max_K):
+    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                 controller_parameter, controller, orientation_error, step_num,
+                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
+                 min_K, max_K, rl_frequency, observation_range):
+        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                         controller_parameter, controller, orientation_error, step_num,
+                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list)
 
-        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias, step_num,
-                         desired_posture_list, desired_vel_list, desired_acc_list, desired_force_list,
-                         init_M, init_B, init_K, min_K, max_K)
-
+        self.min_K = min_K.copy()
+        self.max_K = max_K.copy()
+        M = np.diagonal(controller_parameter['M'])[0]
+        B = controller_parameter['B'][0]
+        K = controller_parameter['K'][0]
+        self.wn = np.sqrt(K / M)
+        self.damping_ratio = B / 2 / np.sqrt(K * M)
         # reinforcement learning part,每一部分有超参数与参数组成 ##################################
         self.rl_frequency = rl_frequency
         self.sub_step_num = int(self.control_frequency / self.rl_frequency)  # 两个动作之间的机器人控制次数
@@ -475,19 +344,21 @@ class TrainEnv(Jk5StickStiffnessEnv, Env):
         self.observation_num = 10  # 观测数：3个位置+3个速度+4个旋转
         self.action_num = 6  # 动作数：接触方向的刚度变化量
         self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num), dtype=np.float32)  # 连续观测空间
+                                            high=np.inf * np.ones(self.observation_num),
+                                            dtype=np.float32)  # 连续观测空间
         self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
-                                       high=1 * np.ones(self.action_num), dtype=np.float32)  # 连续动作空间
+                                       high=1 * np.ones(self.action_num),
+                                       dtype=np.float32)  # 连续动作空间
         self.action_limit = 50
 
         self.current_episode = -1
 
     def get_observation(self):
         xpos = self.status['xpos']
-        quat = self.status['quat']
-        xpos_vel = self.status['xpos_vel']
+        xquat = self.status['xquat']
+        xpos_vel = self.status['xvel'][:3]
 
-        status = np.concatenate((xpos, quat, xpos_vel), dtype=np.float32)
+        status = np.concatenate((xpos, xquat, xpos_vel), dtype=np.float32)
         self.observation_buffer.append(status)  # status与observation关系
         # 够长则取最近的observation_range个，不够对最远那个进行复制，observation_range×(3+4+2)
         if len(self.observation_buffer) >= self.observation_range:
@@ -499,14 +370,14 @@ class TrainEnv(Jk5StickStiffnessEnv, Env):
         return observation
 
     def get_reward(self):
-        xpos_error = self.status['xpos_error']
+        xpos_error = self.status['desired_xpos'] - self.status['xpos']
         contact_force = self.status['contact_force']
         tau = self.status['tau']
         done = self.status['done']
         failure = self.status['failure']
 
         ## 运动状态的奖励
-        movement_reward = np.sum(xpos_error[[0, 1, 3, 4, 5]] ** 2)
+        movement_reward = np.sum(xpos_error[[0, 1]] ** 2)
         fext_reward = - np.sum(
             np.linalg.norm(contact_force - self.desired_force_list[self.current_step], ord=1))
         fext_reward = fext_reward + 10 if fext_reward > -5 else fext_reward  # 要是力距离期望力较近则进行额外奖励
@@ -547,10 +418,10 @@ class TrainEnv(Jk5StickStiffnessEnv, Env):
         sub_step = 0
         for sub_step in range(self.sub_step_num):
             # action，即刚度变化量，进行插值
-            self.K += self.action_limit * action / self.sub_step_num  # 只有z方向
-            M = self.K / (self.wn * self.wn)
-            self.B = 2 * self.damping_ratio * numpy.sqrt(M * self.K)
-            self.M = np.diag(M)
+            self.controller_parameter['K'] += self.action_limit * action / self.sub_step_num  # 只有z方向
+            M = self.controller_parameter['K'] / (self.wn * self.wn)
+            self.controller_parameter['B'] = 2 * self.damping_ratio * numpy.sqrt(M * self.controller_parameter['K'])
+            self.controller_parameter['M'] = np.diag(M)
             super().step()
             # 可视化
             if hasattr(self, 'viewer'):
@@ -563,7 +434,8 @@ class TrainEnv(Jk5StickStiffnessEnv, Env):
                     'terminal info'] = True, True, 'success'
             else:
                 success = False
-            if any(np.greater(self.K, self.max_K)) or any(np.greater(self.min_K, self.K)):
+            if any(np.greater(self.controller_parameter['K'], self.max_K)) or \
+                    any(np.greater(self.min_K, self.controller_parameter['K'])):
                 failure = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
@@ -639,7 +511,7 @@ class TrainEnv(Jk5StickStiffnessEnv, Env):
 def load_env_kwargs(task=None):
     if task == 'desk':
         # 实验内容
-        mjc_model_path = 'robot/jk5_table.xml'
+        mjc_model_path = 'robot/jk5_table_v2.xml'
         qpos_init_list = np.array([0, -30, 120, 0, -90, 0]) / 180 * np.pi
         p_bias = np.zeros(3)
         r_bias = np.eye(3)
@@ -647,37 +519,41 @@ def load_env_kwargs(task=None):
         observation_range = 1
         step_num = 2000
         # 期望轨迹
-        desired_pos_list = np.concatenate((np.linspace(-0.45, -0.75, step_num).reshape(step_num, 1),
-                                           -0.1135 * np.ones((step_num, 1), dtype=float),
-                                           0.05 * np.ones((step_num, 1), dtype=float)), axis=1)
+        desired_xpos_list = np.concatenate((np.linspace(-0.45, -0.75, step_num).reshape(step_num, 1),
+                                            -0.1135 * np.ones((step_num, 1), dtype=float),
+                                            0.05 * np.ones((step_num, 1), dtype=float)), axis=1)
         desired_mat_list = np.array([[0, -1, 0, -1, 0, 0, 0, 0, -1]], dtype=np.float64).repeat(step_num, axis=0)
-        desired_posture_list = np.concatenate((desired_pos_list, desired_mat_list), axis=1)
-        desired_vel_list = np.array([[-0.3 / step_num, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
-        desired_acc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xposture_list = np.concatenate((desired_xpos_list, desired_mat_list), axis=1)
+        desired_xvel_list = np.array([[-0.3 / step_num, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xacc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         desired_force_list = np.array([[0, 0, 30, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
-        init_K = np.array([1000, 1000, 1000, 2000, 2000, 2000], dtype=np.float64)
-        M = init_K / (wn * wn)
-        init_M = np.diag(M)
-        init_B = 2 * damping_ratio * np.sqrt(M * init_K)
+        K = np.array([1000, 1000, 1000, 2000, 2000, 2000], dtype=np.float64)
+        M = K / (wn * wn)
+        M_matrix = np.diag(M)
+        B = 2 * damping_ratio * np.sqrt(M * K)
+        controller_parameter = {'M': M_matrix, 'B': B, 'K': K}
+        controller = ImpedanceController
+        orientation_error = orientation_error_axis_angle
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([3000, 3000, 3000, 3000, 3000, 3000], dtype=np.float64)
+        rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
+                          p_bias=p_bias, r_bias=r_bias)
         # 用于Jk5StickStiffnessEnv的超参数
-        rbt_env_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
-                              p_bias=p_bias, r_bias=r_bias,
-                              step_num=step_num,
-                              desired_posture_list=desired_posture_list, desired_vel_list=desired_vel_list,
-                              desired_acc_list=desired_acc_list, desired_force_list=desired_force_list,
-                              init_M=init_M, init_B=init_B, init_K=init_K, min_K=min_K,
-                              max_K=max_K)
-        # 用于TrainEnv的超参数
-        rl_env_kwargs = copy.deepcopy(rbt_env_kwargs)
-        rl_env_kwargs['rl_frequency'] = rl_frequency
-        rl_env_kwargs['observation_range'] = observation_range
+        rbt_controller_kwargs = copy.deepcopy(rbt_kwargs)
+        rbt_controller_kwargs.update(controller_parameter=controller_parameter, controller=controller,
+                                     orientation_error=orientation_error, step_num=step_num,
+                                     desired_xposture_list=desired_xposture_list, desired_xvel_list=desired_xvel_list,
+                                     desired_xacc_list=desired_xacc_list, desired_force_list=desired_force_list)
 
-        return rbt_env_kwargs, rl_env_kwargs
+        # 用于TrainEnv的超参数
+        rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
+        rl_env_kwargs.update(min_K=min_K, max_K=max_K,
+                             rl_frequency=rl_frequency, observation_range=observation_range)
+
+        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'open door':
         # 实验内容
         mjc_model_path = 'robot/jk5_opendoor.xml'
@@ -702,21 +578,21 @@ def load_env_kwargs(task=None):
         rot_matrix_last[:3, :3] = np.array([[0, 1, 0], [0, 0, -1], [-1, 0, -0]])  # 最终旋转矩阵
         quat_last = quaternion_from_matrix(rot_matrix_last)  # 最终四元数
         # 轨迹规划
-        desired_pos_list = np.empty((step_num, 3))  # xpos traj
+        desired_xpos_list = np.empty((step_num, 3))  # xpos traj
         desired_mat_list = np.empty((step_num, 9))  # xmat traj
         for i in range(step_num):
-            desired_pos_list[i][0] = center_pred[0] + \
-                                     radius_pred * np.sin(angle_pred + total_angle * i / (step_num - 1))
-            desired_pos_list[i][1] = center_pred[1] \
-                                     - radius_pred * np.cos(angle_pred + total_angle * i / (step_num - 1))
-            desired_pos_list[i][2] = 0.275
+            desired_xpos_list[i][0] = center_pred[0] + \
+                                      radius_pred * np.sin(angle_pred + total_angle * i / (step_num - 1))
+            desired_xpos_list[i][1] = center_pred[1] \
+                                      - radius_pred * np.cos(angle_pred + total_angle * i / (step_num - 1))
+            desired_xpos_list[i][2] = 0.275
             desired_mat_list[i] = quaternion_matrix(quaternion_slerp(quat_init, quat_last, i / (step_num - 1)))[:3,
                                   :3].reshape(
                 -1)
 
-        desired_posture_list = np.concatenate((desired_pos_list, desired_mat_list), axis=1)
-        desired_vel_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
-        desired_acc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xposture_list = np.concatenate((desired_xpos_list, desired_mat_list), axis=1)
+        desired_xvel_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xacc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         desired_force_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         # 初始阻抗参数
         init_M = np.array(np.eye(6), dtype=np.float64)
@@ -728,8 +604,8 @@ def load_env_kwargs(task=None):
         env_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
                           p_bias=p_bias, r_bias=r_bias,
                           step_num=step_num, rl_frequency=rl_frequency, observation_range=observation_range,
-                          desired_posture_list=desired_posture_list, desired_vel_list=desired_vel_list,
-                          desired_acc_list=desired_acc_list, desired_force_list=desired_force_list,
+                          desired_xposture_list=desired_xposture_list, desired_xvel_list=desired_xvel_list,
+                          desired_xacc_list=desired_xacc_list, desired_force_list=desired_force_list,
                           init_M=init_M, init_B=init_B, init_K=init_K, min_K=min_K,
                           max_K=max_K)
         return env_kwargs
@@ -758,20 +634,20 @@ def load_env_kwargs(task=None):
         rot_matrix_last[:3, :3] = np.array([[0, 0, -1], [0, -1, 0], [-1, 0, 0]])  # 最终旋转矩阵
         quat_last = quaternion_from_matrix(rot_matrix_last)  # 最终四元数
         # 轨迹规划
-        desired_pos_list = np.empty((step_num, 3))  # xpos traj
+        desired_xpos_list = np.empty((step_num, 3))  # xpos traj
         desired_mat_list = np.empty((step_num, 9))  # xmat traj
         for i in range(step_num):
-            desired_pos_list[i][0] = center_pred[0] \
-                                     + radius_pred * np.sin(angle_pred - total_angle * i / (step_num - 1))
-            desired_pos_list[i][1] = center_pred[1] \
-                                     - radius_pred * np.cos(angle_pred - total_angle * i / (step_num - 1))
-            desired_pos_list[i][2] = 0.275
+            desired_xpos_list[i][0] = center_pred[0] \
+                                      + radius_pred * np.sin(angle_pred - total_angle * i / (step_num - 1))
+            desired_xpos_list[i][1] = center_pred[1] \
+                                      - radius_pred * np.cos(angle_pred - total_angle * i / (step_num - 1))
+            desired_xpos_list[i][2] = 0.275
             desired_mat_list[i] = quaternion_matrix(quaternion_slerp(quat_init, quat_last, i / (step_num - 1)))[:3,
                                   :3].reshape(-1)
 
-        desired_posture_list = np.concatenate((desired_pos_list, desired_mat_list), axis=1)
-        desired_vel_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
-        desired_acc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xposture_list = np.concatenate((desired_xpos_list, desired_mat_list), axis=1)
+        desired_xvel_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xacc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         desired_force_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         # 阻抗参数
         init_M = np.array(np.eye(6), dtype=np.float64)
@@ -783,8 +659,8 @@ def load_env_kwargs(task=None):
         env_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
                           p_bias=p_bias, r_bias=r_bias,
                           step_num=step_num, rl_frequency=rl_frequency, observation_range=observation_range,
-                          desired_posture_list=desired_posture_list, desired_vel_list=desired_vel_list,
-                          desired_acc_list=desired_acc_list, desired_force_list=desired_force_list,
+                          desired_xposture_list=desired_xposture_list, desired_xvel_list=desired_xvel_list,
+                          desired_xacc_list=desired_xacc_list, desired_force_list=desired_force_list,
                           init_M=init_M, init_B=init_B, init_K=init_K, min_K=min_K,
                           max_K=max_K)
         return env_kwargs
@@ -792,30 +668,54 @@ def load_env_kwargs(task=None):
 
 
 if __name__ == "__main__":
-    rbt_kwargs, rl_kwargs = load_env_kwargs('desk')
-    model = 1
-    if model == 1:
+    rbt_kwargs, rbt_controller_kwargs, rl_kwargs = load_env_kwargs('desk')
+    mode = 1  # 0为机器人，1为机器人+控制器，2为强化学习用于变阻抗控制
+    controller = 0  # 0为阻抗控制，1为导纳控制，2为计算力矩控制
+    orientation_error = 0  # 0为轴角旋转误差，1为四元数旋转误差
+    if mode == 0:
         rbt_kwargs['mjc_model_path'] = '../robot/jk5_table_v2.xml'
-        env = Jk5StickStiffnessEnv(**rbt_kwargs)
+        rbt = Jk5StickRobot(**rbt_kwargs)
+    elif mode == 1:
+        rbt_controller_kwargs['mjc_model_path'] = '../robot/jk5_table_v2.xml'
+        if controller == 1:
+            rbt_controller_kwargs['controller'] = AdmittanceController
+        elif controller == 2:
+            wn = 20
+            damping_ratio = np.sqrt(2)
+            kp = wn * wn * np.ones(6, dtype=np.float64)
+            kd = 2 * damping_ratio * numpy.sqrt(kp)
+            rbt_controller_kwargs['controller_parameter'] = {'kp': kp, 'kd': kd}
+            rbt_controller_kwargs['controller'] = ComputedTorqueController
+        if orientation_error == 1:
+            rbt_controller_kwargs['orientation_error'] = orientation_error_quaternion
+        env = Jk5StickRobotWithController(**rbt_controller_kwargs)
         env.reset()
         contact_force_buffer = [env.status['contact_force']]
+        tau_buffer = [env.status['tau']]
         xpos_buffer = [env.status['xpos']]
-        desired_pos_buffer = [env.status['desired_pos']]
-        for _ in range(rbt_kwargs['step_num']):
+        desired_xpos_buffer = [env.status['desired_xpos']]
+        for _ in range(rbt_controller_kwargs['step_num']):
             env.step()
             # env.render(pause_start=True)
             contact_force_buffer.append(env.status['contact_force'])
+            tau_buffer.append(env.status['tau'])
             xpos_buffer.append(env.status['xpos'])
-            desired_pos_buffer.append(env.status['desired_pos'])
-        plt.figure(1)
-        plt.plot(contact_force_buffer)
-        plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-        plt.grid()
+            desired_xpos_buffer.append(env.status['desired_xpos'])
+        # plt.figure(1)
+        # plt.plot(contact_force_buffer)
+        # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        # plt.grid()
         plt.figure(2)
         plt.plot(xpos_buffer)
-        plt.plot(desired_pos_buffer)
+        plt.plot(desired_xpos_buffer)
         plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+        plt.title(
+            rbt_controller_kwargs['controller'].__name__ + ' ' + rbt_controller_kwargs['orientation_error'].__name__)
         plt.grid()
+        # plt.figure(3)
+        # plt.plot(tau_buffer)
+        # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        # plt.grid()
         plt.show()
 
     else:
