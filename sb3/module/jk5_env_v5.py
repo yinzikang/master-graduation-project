@@ -48,8 +48,10 @@ class Jk5StickRobot:
         self.joint_list = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
         self.actuator_list = ['motor1', 'motor2', 'motor3', 'motor4', 'motor5', 'motor6']
         self.sensor_list = ['contact_force', 'contact_torque', 'contact_touch', 'nft_force', 'nft_torque']
-        self.eef_name = 'ee'
-        self.eef_id = mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_SITE, self.eef_name)
+        self.ee_site_name = 'ee'
+        self.ee_site_id = mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_SITE, self.ee_site_name)
+        self.dummy_body_name = 'dummy_body'
+        self.dummy_body_id = mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, self.dummy_body_name)
         # data
         self.data = mp.MjData(self.mjc_model)
         self.status = dict()
@@ -110,17 +112,25 @@ class Jk5StickRobot:
                         kdl_mat[2, 0], kdl_mat[2, 1], kdl_mat[2, 2]]).reshape(3, 3)
         return pos, mat
 
+    @staticmethod
+    def mat_to_quat(xmat):
+        xmat44 = np.eye(4)
+        xmat44[:3, :3] = xmat
+        xquat = quaternion_from_matrix(xmat44)
+        if xquat[3] < 0:
+            xquat = - xquat
+
+        return xquat
+
     def get_xposture_xvel(self):
         # 位置
-        xpos = np.array(self.data.site(self.eef_name).xpos)
+        xpos = np.array(self.data.site(self.ee_site_name).xpos)
         # 姿态
-        xmat = np.array(self.data.site(self.eef_name).xmat).reshape(3, 3)
-        mat44 = np.eye(4)
-        mat44[:3, :3] = xmat
-        xquat = quaternion_from_matrix(mat44)
+        xmat = np.array(self.data.site(self.ee_site_name).xmat).reshape(3, 3)
+        xquat = self.mat_to_quat(xmat)
         # 速度
         xvel = np.ndarray(shape=(6,), dtype=np.float64, order='C')
-        mp.mj_objectVelocity(self.mjc_model, self.data, mp.mjtObj.mjOBJ_SITE, self.eef_id, xvel, False)
+        mp.mj_objectVelocity(self.mjc_model, self.data, mp.mjtObj.mjOBJ_SITE, self.ee_site_id, xvel, False)
         xvel = xvel[[3, 4, 5, 0, 1, 2]]  # 把线速度放在前面
         return xpos, xmat, xquat, xvel
 
@@ -176,7 +186,7 @@ class Jk5StickRobot:
     def get_jacobian(self):  # 注意行列数与具体关节数不一定相等，且所需行列不一定相邻
         jacp = np.ndarray(shape=(3, self.mjc_model.nv), dtype=np.float64, order='C')
         jacr = np.ndarray(shape=(3, self.mjc_model.nv), dtype=np.float64, order='C')
-        mp.mj_jacSite(self.mjc_model, self.data, jacp, jacr, self.eef_id)
+        mp.mj_jacSite(self.mjc_model, self.data, jacp, jacr, self.ee_site_id)
         J_full = np.array(np.vstack([jacp[:, :self.joint_num], jacr[:, :self.joint_num]]))
         return J_full
 
@@ -203,9 +213,9 @@ class Jk5StickRobot:
         CG_x = np.dot(np.linalg.inv(J.T), CG_q) - np.dot(np.dot(D_x, Jd), qvel)
         self.status.update(D_q=D_q, D_x=D_x, CG_q=CG_q, CG_x=CG_x)
 
-        # 接触状态
-        contact_force = np.concatenate((self.data.sensor(self.sensor_list[0]).data,
-                                        self.data.sensor(self.sensor_list[1]).data))
+        # 接触状态：contact_force：笛卡尔空间下，相对于基坐标系，机器人受到的力，按压桌子受到的力朝上，因此contact_force为正
+        contact_force = - np.concatenate((xmat[:3, :3] @ self.data.sensor(self.sensor_list[0]).data,
+                                          xmat[:3, :3] @ self.data.sensor(self.sensor_list[1]).data))
         touch_force = np.array(self.data.sensor(self.sensor_list[2]).data)
         nft_force = np.concatenate((self.data.sensor(self.sensor_list[3]).data,
                                     self.data.sensor(self.sensor_list[4]).data))
@@ -241,6 +251,8 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.status.update(controller_parameter=self.controller_parameter.copy(),
                            desired_xpos=self.desired_xposture_list[self.current_step][:3],
                            desired_xmat=self.desired_xposture_list[self.current_step][3:].reshape(3, 3),
+                           desired_xquat=self.mat_to_quat(
+                               self.desired_xposture_list[self.current_step][3:].reshape(3, 3)),
                            desired_xvel=self.desired_xvel_list[self.current_step],
                            desired_xacc=self.desired_xacc_list[self.current_step],
                            tau=np.array(self.data.ctrl[:]))
@@ -293,6 +305,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         """
         控制器运行一次
         """
+        # self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][4] = 50
         tau = self.controller.step(self.status)
         # 执行
         self.data.ctrl[:] = tau
@@ -519,18 +532,26 @@ def load_env_kwargs(task=None):
         observation_range = 1
         step_num = 2000
         # 期望轨迹
-        desired_xpos_list = np.concatenate((np.linspace(-0.45, -0.75, step_num).reshape(step_num, 1),
+        # desired_xpos_list = np.concatenate((np.linspace(-0.45, -0.75, step_num).reshape(step_num, 1),
+        #                                     -0.1135 * np.ones((step_num, 1), dtype=float),
+        #                                     0.05 * np.ones((step_num, 1), dtype=float)), axis=1)
+        # desired_mat_list = np.array([[0, -1, 0, -1, 0, 0, 0, 0, -1]], dtype=np.float64).repeat(step_num, axis=0)
+        # desired_xposture_list = np.concatenate((desired_xpos_list, desired_mat_list), axis=1)
+        # desired_xvel_list = np.array([[-0.3 / step_num, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        # desired_xacc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        # desired_force_list = np.array([[0, 0, 30, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xpos_list = np.concatenate((np.linspace(-0.5, -0.5, step_num).reshape(step_num, 1),
                                             -0.1135 * np.ones((step_num, 1), dtype=float),
                                             0.05 * np.ones((step_num, 1), dtype=float)), axis=1)
         desired_mat_list = np.array([[0, -1, 0, -1, 0, 0, 0, 0, -1]], dtype=np.float64).repeat(step_num, axis=0)
         desired_xposture_list = np.concatenate((desired_xpos_list, desired_mat_list), axis=1)
-        desired_xvel_list = np.array([[-0.3 / step_num, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_xvel_list = np.array([[-0. / step_num, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         desired_xacc_list = np.array([[0, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         desired_force_list = np.array([[0, 0, 30, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
-        K = np.array([1000, 1000, 1000, 2000, 2000, 2000], dtype=np.float64)
+        K = np.array([1000, 1000, 1000, 1000, 1000, 1000], dtype=np.float64)
         M = K / (wn * wn)
         M_matrix = np.diag(M)
         B = 2 * damping_ratio * np.sqrt(M * K)
@@ -670,13 +691,14 @@ def load_env_kwargs(task=None):
 if __name__ == "__main__":
     rbt_kwargs, rbt_controller_kwargs, rl_kwargs = load_env_kwargs('desk')
     mode = 1  # 0为机器人，1为机器人+控制器，2为强化学习用于变阻抗控制
-    controller = 0  # 0为阻抗控制，1为导纳控制，2为计算力矩控制
-    orientation_error = 0  # 0为轴角旋转误差，1为四元数旋转误差
+    controller = 1  # 0为阻抗控制，1为导纳控制，2为计算力矩控制
+    orientation_error = 1  # 0为轴角旋转误差，1为四元数旋转误差
     if mode == 0:
         rbt_kwargs['mjc_model_path'] = '../robot/jk5_table_v2.xml'
         rbt = Jk5StickRobot(**rbt_kwargs)
     elif mode == 1:
         rbt_controller_kwargs['mjc_model_path'] = '../robot/jk5_table_v2.xml'
+        # rbt_controller_kwargs['qpos_init_list'] = np.array([0, -30, 120, 0, -60, 0]) / 180 * np.pi
         if controller == 1:
             rbt_controller_kwargs['controller'] = AdmittanceController
         elif controller == 2:
@@ -690,32 +712,81 @@ if __name__ == "__main__":
             rbt_controller_kwargs['orientation_error'] = orientation_error_quaternion
         env = Jk5StickRobotWithController(**rbt_controller_kwargs)
         env.reset()
+        xpos_buffer = [env.status['xpos']]
+        xmat_buffer = [env.status['xmat']]
+        xquat_buffer = [env.status['xquat']]
+        desired_xpos_buffer = [env.status['desired_xpos']]
+        desired_xmat_buffer = [env.status['desired_xmat']]
+        desired_xquat_buffer = [env.status['desired_xquat']]
         contact_force_buffer = [env.status['contact_force']]
         tau_buffer = [env.status['tau']]
-        xpos_buffer = [env.status['xpos']]
-        desired_xpos_buffer = [env.status['desired_xpos']]
         for _ in range(rbt_controller_kwargs['step_num']):
             env.step()
             # env.render(pause_start=True)
+
+            xpos_buffer.append(env.status['xpos'])
+            xmat_buffer.append(env.status['xmat'])
+            xquat_buffer.append(env.status['xquat'])
+            desired_xpos_buffer.append(env.status['desired_xpos'])
+            desired_xmat_buffer.append(env.status['desired_xmat'])
+            desired_xquat_buffer.append(env.status['desired_xquat'])
             contact_force_buffer.append(env.status['contact_force'])
             tau_buffer.append(env.status['tau'])
-            xpos_buffer.append(env.status['xpos'])
-            desired_xpos_buffer.append(env.status['desired_xpos'])
-        # plt.figure(1)
-        # plt.plot(contact_force_buffer)
-        # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+
+        fig_title = rbt_controller_kwargs['controller'].__name__ + ' ' + \
+                    rbt_controller_kwargs['orientation_error'].__name__ + ' '
+
+        i = 0
+
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(xpos_buffer)
+        # plt.plot(desired_xpos_buffer)
+        # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+        # plt.title(fig_title + 'xpos')
         # plt.grid()
-        plt.figure(2)
-        plt.plot(xpos_buffer)
-        plt.plot(desired_xpos_buffer)
-        plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-        plt.title(
-            rbt_controller_kwargs['controller'].__name__ + ' ' + rbt_controller_kwargs['orientation_error'].__name__)
+
+        # i += 1
+        # plt.figure(i)
+        # plt.plot((np.array(xpos_buffer) - np.array(desired_xpos_buffer))[1:, :] /
+        #          np.array(contact_force_buffer)[1:, :3])
+        # plt.legend(['x', 'y', 'z'])
+        # plt.title(fig_title + '1/stiffness')
+        # plt.grid()
+
+        i += 1
+        plt.figure(i)
+        plt.plot(xquat_buffer)
+        plt.plot(desired_xquat_buffer)
+        plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
+        plt.title(fig_title + 'xquat')
         plt.grid()
-        # plt.figure(3)
+
+        i += 1
+        plt.figure(i)
+        orientation_error_buffer = []
+        for j in range(len(xquat_buffer)):
+            orientation_error_buffer.append(
+                Jk5StickRobotWithController.mat_to_quat(np.linalg.inv(desired_xmat_buffer[j]) @ xmat_buffer[j]))
+        plt.plot(orientation_error_buffer)
+        plt.legend(['x', 'y', 'z', 'w'])
+        plt.title(fig_title + 'orientation_error')
+        plt.grid()
+
+        i += 1
+        plt.figure(i)
+        plt.plot(contact_force_buffer)
+        plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        plt.title(fig_title + 'force')
+        plt.grid()
+
+        # i += 1
+        # plt.figure(i)
         # plt.plot(tau_buffer)
         # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        # plt.title(fig_title+'tau')
         # plt.grid()
+
         plt.show()
 
     else:

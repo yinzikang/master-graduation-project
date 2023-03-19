@@ -38,7 +38,7 @@ def orientation_error_axis_angle(desired, current):
 
 def orientation_error_quaternion(desired, current):
     """
-    虚部++实部，前三个当偏差
+    虚部+实部，前三个当偏差
     转换到当前坐标系
     :param desired:
     :param current:
@@ -80,7 +80,6 @@ class ComputedTorqueController:
 
         solved_acc = desired_xacc + np.multiply(kd, xvel_error) + np.multiply(kp, xposture_error)
         F = np.dot(D_x, solved_acc) + CG_x - contact_force
-        # F = np.dot(D_x, solved_acc) + CG_x
         tau = np.dot(J.T, F)
 
         return tau
@@ -158,12 +157,12 @@ class AdmittanceController:
             self.compliant_xmat = copy.deepcopy(desired_xmat)
             self.compliant_xvel = copy.deepcopy(desired_xvel)
             self.compliant_xacc = copy.deepcopy(desired_xacc)
-
-        dc_xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
-                                            self.orientation_error(desired_xmat, self.compliant_xmat)])
-        dc_xvel_error = desired_xvel - self.compliant_xvel
-        T = np.multiply(B, dc_xvel_error) + np.multiply(K, dc_xposture_error)  # w_{dc} dot, related to base frame
-        solved_acc = desired_xacc + np.dot(np.linalg.inv(M), -contact_force + T)  # compliant_xacc
+        # xposture_error, xvel_error, w_c dot, related to base frame
+        xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
+                                         self.orientation_error(desired_xmat, self.compliant_xmat)])
+        xvel_error = desired_xvel - self.compliant_xvel
+        T = np.multiply(B, xvel_error) + np.multiply(K, xposture_error) + contact_force
+        solved_acc = desired_xacc + np.dot(np.linalg.inv(M), T)  # compliant_xacc
         self.compliant_xacc = solved_acc
         self.compliant_xvel += self.compliant_xacc * timestep
         self.compliant_xpos = self.compliant_xvel[:3] * timestep
