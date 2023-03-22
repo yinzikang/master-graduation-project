@@ -1,6 +1,6 @@
 <mujoco model="jk5">
     <include file="basic_env.xml"/>
-    <include file="robot.xml"/>
+    <include file="robot_stick.xml"/>
     <worldbody>
 <!--desk1-->
 <!--        <body name="table" pos="-0.5 0 0.0345">-->

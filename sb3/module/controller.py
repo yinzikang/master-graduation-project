@@ -165,7 +165,7 @@ class AdmittanceController:
         solved_acc = desired_xacc + np.dot(np.linalg.inv(M), T)  # compliant_xacc
         self.compliant_xacc = solved_acc
         self.compliant_xvel += self.compliant_xacc * timestep
-        self.compliant_xpos = self.compliant_xvel[:3] * timestep
+        self.compliant_xpos += self.compliant_xvel[:3] * timestep
         W = np.array([[0., -self.compliant_xacc[5], self.compliant_xacc[4]],
                       [self.compliant_xacc[5], 0., -self.compliant_xacc[3]],
                       [-self.compliant_xacc[4], self.compliant_xacc[3], 0.]])

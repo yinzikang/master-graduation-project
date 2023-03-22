@@ -1,4 +1,4 @@
-<!--jk5环境-->
+<!--jk5+连杆环境，用于表面接触任务-->
 <mujoco model="jk5">
     <asset>
         <mesh name="base_link" file="base_link.STL" />
@@ -12,38 +12,38 @@
     <worldbody>
         <body name="jk5" pos="0 0 0">
             <body name="base_link" pos="0 0 0">
-                <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="base_link"/>
+                <geom type="mesh" contype="0" conaffinity="0" rgba="1 1 1 1" mesh="base_link"/>
                 <body name="link1" pos="0 0 0.069">
-                    <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0 0.8 1 1" mesh="link1"/>
+                    <geom type="mesh" contype="0" conaffinity="0" rgba="0 0.8 1 1" mesh="link1"/>
                     <joint name="joint1" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14"/>
                     <inertial pos="-3.8005e-05 -0.0024889 0.054452" quat="0.696512 0.0244353 -0.0262529 0.716648"
                               mass="4.27" diaginertia="0.0214324 0.0213196 0.00795099"/>
                     <body name="link2" pos="0 0 0.073" quat="0.707106781 0.707106781 0 0">
-                        <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link2"/>
+                        <geom type="mesh" contype="0" conaffinity="0" rgba="1 1 1 1" mesh="link2"/>
                         <joint name="joint2" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14"/>
                         <inertial pos="0 0.21252 0.12053" quat="0.414451 0.57284 0.573072 0.414334"
                                   mass="10.1" diaginertia="1.01715 0.953511 0.0834946"/>
                         <body name="link3" pos="0 0.425 0" quat="0.707106781 0 0 0.707106781">
-                            <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link3"/>
+                            <geom type="mesh" contype="0" conaffinity="0" rgba="1 1 1 1" mesh="link3"/>
                             <joint name="joint3" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14"/>
                             <inertial pos="0.27205 1.9634e-05 0.023591" quat="0.482588 0.516912 0.516005 0.483374"
                                       mass="2.61" diaginertia="0.262358 0.261811 0.0036704"/>
                             <body name="link4" pos="0.395 0 0">
-                                <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0 0.8 1 1" mesh="link4"/>
+                                <geom type="mesh" contype="0" conaffinity="0" rgba="0 0.8 1 1" mesh="link4"/>
                                 <joint name="joint4" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14"/>
                                 <inertial pos="3.0707e-05 -0.015152 0.11185" quat="0.997531 0.0701668 0.000322345 -0.00295604"
                                           mass="1.45" diaginertia="0.0201018 0.0196889 0.00158379"/>
                                 <body name="link5" pos="0 0 0.1135" quat="0.5 -0.5 0.5 -0.5">
-                                    <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="1 1 1 1" mesh="link5"/>
+                                    <geom type="mesh" contype="0" conaffinity="0" rgba="1 1 1 1" mesh="link5"/>
                                     <joint name="joint5" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14"/>
                                     <inertial pos="-3.0707e-05 0.015152 0.099848"  quat="0.704002 -0.0654372 0.0666836 0.704026"
                                               mass="1.45" diaginertia="0.0057004 0.0057004 0.0057004"/>
                                     <body name="link6" pos="0 0 0.1015" quat="0.707106781 0.707106781 0 0">
-                                        <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.79216 0.81961 0.93333 1" mesh="link6"/>
+                                        <geom type="mesh" contype="0" conaffinity="0" rgba="0.79216 0.81961 0.93333 1" mesh="link6"/>
                                         <joint name="joint6" pos="0 0 0" axis="0 0 1" limited="true" range="-3.14 3.14"/>
                                         <inertial pos="0 0.00058691 0.072051" quat="0.999992 -0.00407703 0 0"
                                                   mass="0.21" diaginertia="0.00128044 0.00120857 0.000194485"/>
-                                        <!--机器人末端位置-->
+                                        <!--机器人末端位置，re for robot end-->
                                         <site name="re" pos="0 0 0" rgba="1 0 0 0" size="0.03 0.03 0.03" type="box"/>
                                         <!--执行器-->
                                         <body name="ee_link" pos="0 0 0.094">
@@ -57,7 +57,7 @@
                                             <site name="nft_sensor" pos="0 0 0" rgba="1 0 0 0" size="0.01 0.01 0.01" type="sphere"/>
                                             <!--tip与ee_link，接触点的力，专门定义dummy_body-->
                                             <body name="dummy_body" pos="0 0 0.169">
-                                                <geom type="sphere" pos="0 0 0" rgba="1 1 1 0.5" group="1" size="0.01 0.01 0.01"/>
+                                                <geom type="sphere" pos="0 0 0" rgba="1 1 1 0.5" size="0.01 0.01 0.01"/>
                                                 <inertial pos="0 0 0" mass="0.000000001" diaginertia="0.000000001 0.000000001 0.000000001"/>
                                                 <site name="contact_sensor" pos="0 0 0" rgba="1 0 0 0" size="0.01 0.01 0.01" type="sphere"/>
                                             </body>
@@ -72,12 +72,12 @@
         </body>
     </worldbody>
     <actuator>
-        <motor name='motor1' ctrllimited="true" ctrlrange="-100 100" joint='joint1' gear="1"/>
-        <motor name='motor2' ctrllimited="true" ctrlrange="-100 100" joint='joint2' gear="1"/>
-        <motor name='motor3' ctrllimited="true" ctrlrange="-100 100" joint='joint3' gear="1"/>
-        <motor name='motor4' ctrllimited="true" ctrlrange="-100 100" joint='joint4' gear="1"/>
-        <motor name='motor5' ctrllimited="true" ctrlrange="-100 100" joint='joint5' gear="1"/>
-        <motor name='motor6' ctrllimited="true" ctrlrange="-100 100" joint='joint6' gear="1"/>
+        <motor name='motor1' ctrllimited="true" ctrlrange="-500 500" joint='joint1' gear="1"/>
+        <motor name='motor2' ctrllimited="true" ctrlrange="-500 500" joint='joint2' gear="1"/>
+        <motor name='motor3' ctrllimited="true" ctrlrange="-500 500" joint='joint3' gear="1"/>
+        <motor name='motor4' ctrllimited="true" ctrlrange="-500 500" joint='joint4' gear="1"/>
+        <motor name='motor5' ctrllimited="true" ctrlrange="-500 500" joint='joint5' gear="1"/>
+        <motor name='motor6' ctrllimited="true" ctrlrange="-500 500" joint='joint6' gear="1"/>
     </actuator>
     <sensor>
         <!--检测接触点的力与力矩-->
