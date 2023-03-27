@@ -48,7 +48,8 @@
                                         <!--执行器-->
                                         <body name="ee_link" pos="0 0 0.094">
                                             <geom name="ft_sensor" type="cylinder" rgba="1 1 1 1" fromto="0 0 0  0 0 0.034" size="0.0375"/>
-                                            <geom name="stick" type="cylinder" rgba="1 1 1 0.5" pos="0 0 0.0845" size="0.01 0.0845"/>
+                                            <geom name="stick" type="cylinder" rgba="1 1 1 0.5" pos="0 0 0.0845" size="0.01 0.0845"
+                                                  contype="0" conaffinity="0"/>
                                             <inertial pos="0 0 0.015" mass="0.424"
                                                       diaginertia="0.00019875 0.00019875 0.00019080"/>
                                             <!--执行器末端位置-->

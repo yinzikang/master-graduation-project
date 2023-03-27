@@ -15,7 +15,8 @@
                       solimp="0.1 0.3 0.001 0.5 2" solref="-50000.0 -0.1"/>
                 <inertial pos="0 0 0" mass="1000" diaginertia="0.1 0.1 0.1"/>
             </body>
-            <!--抽屉任务。关闭时，把手中心实际位置为：0.8-0.2-0.0175,0,0.2+0.42+0.055=0.5825,0,0.675 -->
+            <!--抽屉任务。
+            关闭时，把手中心实际位置为：0.8-0.2-0.0175,0,0.2+0.42+0.055=0.5825,0,0.675 -->
             <body name="drawer" pos="0.01 0 0.42">
                 <!--底部-->
                 <geom size=".175 .1625 .0025" pos="0 0 -0.0025" type="box" rgba="1 1 1 1"/>
@@ -25,7 +26,8 @@
                 <!--后面-->
                 <geom size=".0075 .1475 .035" pos="-0.1675 0 0.035" type="box" rgba="1 1 1 1"/>
                 <!--前面-->
-                <geom size=".0075 .19 .075" pos="0.1825 0 0.055" type="box" rgba="1 1 1 1"/>
+                <geom size=".0075 .19 .075" pos="0.1825 0 0.055" type="box" rgba="1 1 1 1"
+                      contype="0" conaffinity="0"/>
                 <!--把手-->
                 <body name="drawer handle" pos="0.19 0 0.055">
                     <geom size=".0025 .045 .005" pos="0.0175 0 0" type="box" rgba="0 0 0 1"/>
@@ -34,17 +36,19 @@
                 </body>
                 <inertial pos="0 0 0" mass="1" diaginertia="0.1 0.1 0.1"/>
                 <joint name="drawer joint" type="slide" pos="0 0 0" axis="1 0 0" range="0 0.3" limited="true"
-                       damping="4" frictionloss="10"/>
+                       damping="10" frictionloss="10"/>
             </body>
-            <!--门任务-->
+            <!--门任务。门转轴位于0.8-0.2+0.0075，-0.1135-0.19,z=0.6075,-0.3035,z。长偏置0.34,高偏置0.025,两者的斜边为半径
+            关闭时，把手中心实际位置为：0.8-0.2-0.0175,-0.1135+0.15,0.2+0.22=0.5825,0.0365,0.42
+            打开时，把手中心实际位置为：0.8-0.2+0.0075-0.19-0.15,-0.1135-0.19-0.0075-0.0175,0.2+0.22=0.2675,-0.3285,0.42 -->
             <body name="door" pos="0.1925 0 0.22">
                 <!--门板-->
                 <geom name="panel" size="0.0075 0.19 .17" type="box" material="MatDarkWood"/>
                 <!--把手-->
                 <body name="door handle" pos="0.005 -0.15 0">
-                    <geom size=".0025 .005 .045" pos="0.0175 0 0" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
-                    <geom size=".01 .005 .0025" pos="0.01 0 0.0475" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
-                    <geom size=".01 .005 .0025" pos="0.01 0 -0.0475" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
+                    <geom size=".0025 .005 .045" pos="0.0175 0 0" type="box" rgba="0 0 0 1"/>
+                    <geom size=".01 .005 .0025" pos="0.01 0 0.0475" type="box" rgba="0 0 0 1"/>
+                    <geom size=".01 .005 .0025" pos="0.01 0 -0.0475" type="box" rgba="0 0 0 1"/>
                 </body>
                 <inertial pos="0.0296816 -0.00152345 0" quat="0.701072 0 0 0.713091"
                           mass="2.43455" diaginertia="0.0913751 0.0521615 0.043714"/>
@@ -70,4 +74,8 @@
             </body>
         </body>
     </worldbody>
+        <equality>
+        <connect name="robot2drawer" active="false" body1="dummy_body" body2="drawer handle" anchor="0.01 0 0" solref="2e-3 1"/>
+        <connect name="robot2door" active="false" body1="dummy_body" body2="door handle" anchor="0.01 0 0" solref="2e-3 1"/>
+    </equality>
 </mujoco>
