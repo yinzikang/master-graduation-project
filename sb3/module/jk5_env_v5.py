@@ -232,7 +232,9 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                            desired_xvel=self.desired_xvel_list[self.current_step],
                            desired_xacc=self.desired_xacc_list[self.current_step],
                            desired_force=self.desired_force_list[self.current_step],
-                           tau=np.array(self.data.ctrl[:]))
+                           tau=np.array(self.data.ctrl[:]),
+                           timestep=self.mjc_model.opt.timestep,
+                           current_step = self.current_step)
 
     def reset(self):
         """
@@ -279,11 +281,8 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.controller_parameter = copy.deepcopy(self.initial_controller_parameter)
 
         self.status.update(J=self.get_jacobian())
-        self.status.update(timestep=self.mjc_model.opt.timestep)
-        self.get_status()
-        # algorithm reset ##################################################################
-        # 步数更新
         self.current_step = 0
+        self.get_status()
 
     def step(self):
         """
@@ -296,8 +295,8 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         mp.mj_step2(self.mjc_model, self.data)
         mp.mj_step1(self.mjc_model, self.data)
 
-        self.get_status()
         self.current_step += 1
+        self.get_status()
 
     def logger_init(self, output_dir=None):
         if proc_id() == 0:
@@ -366,12 +365,10 @@ class TrainEnv(Jk5StickRobotWithController, Env):
                                            self.current_step - self.observation_range)).flatten()
         return observation
 
-    def get_reward(self):
+    def get_reward(self, done, success, failure):
         xpos_error = self.status['desired_xpos'] - self.status['xpos']
         contact_force = self.status['contact_force']
         tau = self.status['tau']
-        done = self.status['done']
-        failure = self.status['failure']
 
         ## 运动状态的奖励
         movement_reward = np.sum(xpos_error[[0, 1]] ** 2)
@@ -410,7 +407,7 @@ class TrainEnv(Jk5StickRobotWithController, Env):
         """
         # 其余状态的初始化
         reward = 0
-        done = False
+        done, success, error_K, error_force = False, False, False, False
         other_info = dict()
         # 对多次执行机器人控制
         sub_step = 0
@@ -461,10 +458,9 @@ class TrainEnv(Jk5StickRobotWithController, Env):
                 print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
-            self.status.update(done=done, success=success, failure=failure)
 
             # 获得奖励
-            reward += self.get_reward()
+            reward += self.get_reward(done, success, failure)
 
             if done:
                 break

@@ -3,6 +3,7 @@
 """基于gym.Env的实现，用于sb3环境
 
 继承自v6,添加姿态动作
+log更加合理
 
 Write typical usage example here
 
@@ -237,7 +238,9 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                            desired_xvel=self.desired_xvel_list[self.current_step],
                            desired_xacc=self.desired_xacc_list[self.current_step],
                            desired_force=self.desired_force_list[self.current_step],
-                           tau=np.array(self.data.ctrl[:]))
+                           tau=np.array(self.data.ctrl[:]),
+                           timestep=self.mjc_model.opt.timestep,
+                           current_step = self.current_step)
 
     def reset(self):
         """
@@ -280,19 +283,15 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
         mp.mj_forward(self.mjc_model, self.data)
 
-        # impedance control reset
+        # impedance control reset #####################################################################
         self.controller_parameter = copy.deepcopy(self.initial_controller_parameter)
         self.desired_xposture_list = copy.deepcopy(self.init_desired_xposture_list)
         self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
         self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
         self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
-
         self.status.update(J=self.get_jacobian())
-        self.status.update(timestep=self.mjc_model.opt.timestep)
-        self.get_status()
-        # algorithm reset ##################################################################
-        # 步数更新
         self.current_step = 0
+        self.get_status()
 
     def step(self):
         """
@@ -305,8 +304,8 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         mp.mj_step2(self.mjc_model, self.data)
         mp.mj_step1(self.mjc_model, self.data)
 
-        self.get_status()
         self.current_step += 1
+        self.get_status()
 
     def logger_init(self, output_dir=None):
         if proc_id() == 0:
@@ -481,7 +480,7 @@ class TrainEnvVariableStiffness(TrainEnvBase):
         """
         # 其余状态的初始化
         reward = 0
-        done = False
+        done, success, error_K, error_force = False, False, False, False
         other_info = dict()
         # 对多次执行机器人控制
         sub_step = 0
@@ -532,10 +531,9 @@ class TrainEnvVariableStiffness(TrainEnvBase):
                 print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
-            self.status.update(done=done, success=success, failure=failure)
 
             # 获得奖励
-            reward += self.get_reward()
+            reward += self.get_reward(done, success, failure)
 
             if done:
                 break
@@ -565,7 +563,7 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                                        dtype=np.float32)  # 连续动作空间
         self.action_limit = np.array([100, 100, 100, 10, 10, 10,
                                       0.01, 0.01, 0.01,  # 位置变化限制
-                                      1, 1, 1, # 旋转轴变化限制，无意义，反正会标准化
+                                      1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                       0.001], dtype=np.float32)  # 姿态的角度变化限制
 
     def step(self, action):
@@ -595,7 +593,6 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
             self.status['desired_xpos'] += pos
             self.status['desired_xmat'] = mat @ self.status['desired_xmat']
             self.status['desired_xquat'] = quaternion_multiply(quat, self.status['desired_xquat'])
-            # print(self.status['desired_xpos'])
 
             # 可视化
             if hasattr(self, 'viewer'):

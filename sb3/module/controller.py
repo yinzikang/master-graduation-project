@@ -427,7 +427,7 @@ class AdmittanceController:
         timestep = status['timestep']
 
         # 初始化
-        if self.compliant_xpos is None:
+        if status['current_step'] == 0:
             self.compliant_xpos = copy.deepcopy(desired_xpos)
             self.compliant_xmat = copy.deepcopy(desired_xmat)
             self.compliant_xquat = copy.deepcopy(desired_xquat)

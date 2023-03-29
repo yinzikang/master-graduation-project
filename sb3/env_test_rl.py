@@ -10,26 +10,26 @@ Write typical usage example here
 ------------      -------    --------    -----------
 3/28/23 9:07 PM   yinzikang      1.0         None
 """
-# from module.jk5_env_v5 import TrainEnv
-from module.jk5_env_v6 import TrainEnvVariableStiffness as TrainEnv
+from module.jk5_env_v5 import TrainEnv
+# from module.jk5_env_v6 import TrainEnvVariableStiffnessAndPosture as TrainEnv
 from module.env_kwargs import load_env_kwargs
 from module.controller import orientation_error_quat_with_mat
 import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3.common.env_checker import check_env
 
-_, _, rl_kwargs = load_env_kwargs('cabinet surface with plan')
+_, _, rl_kwargs = load_env_kwargs('cabinet drawer open with plan')
 env = TrainEnv(**rl_kwargs)
 if not check_env(env):
     print('check passed')
 
-test_times = 1
+test_times = 2
 plot_flag = True
-zero_action_flag = False
+zero_action_flag = True
 
 for _ in range(test_times):
     env.reset()
-    env.viewer_init()
+    # env.viewer_init()
     if plot_flag:
         env.logger_init('./env_test_log')
     R = 0
@@ -37,7 +37,9 @@ for _ in range(test_times):
         # Random action
         a = env.action_space.sample()
         if zero_action_flag:
-            a = np.zeros_like(a)
+            # a = np.zeros_like(a)
+            a[:9] = 0.0
+            a[12:] = 0.0
         o, r, d, info = env.step(a)
         R += r
         if d:
@@ -73,47 +75,47 @@ for _ in range(test_times):
         plt.title('xpos_vel')
         plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xquat"]))
-        plt.plot(np.array(env.logger.episode_dict["desired_xquat"]))
-        plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
-        plt.title('xquat')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xquat"]))
+        # plt.plot(np.array(env.logger.episode_dict["desired_xquat"]))
+        # plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
+        # plt.title('xquat')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xvel"])[:, 3:])
+        # plt.plot(np.array(env.logger.episode_dict["desired_xvel"])[:, 3:])
+        # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+        # plt.title('xmat_vel')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # orientation_error_buffer = []
+        # for j in range(len(env.logger.episode_dict["xquat"])):
+        #     orientation_error_buffer.append(
+        #         orientation_error_quat_with_mat(np.array(env.logger.episode_dict["desired_xmat"])[j],
+        #                                         np.array(env.logger.episode_dict["xmat"])[j]))
+        # plt.plot(orientation_error_buffer)
+        # plt.legend(['x', 'y', 'z'])
+        # plt.title('orientation_error')
+        # plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xvel"])[:, 3:])
-        plt.plot(np.array(env.logger.episode_dict["desired_xvel"])[:, 3:])
-        plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-        plt.title('xmat_vel')
-        plt.grid()
-
-        i += 1
-        plt.figure(i)
-        orientation_error_buffer = []
-        for j in range(len(env.logger.episode_dict["xquat"])):
-            orientation_error_buffer.append(
-                orientation_error_quat_with_mat(np.array(env.logger.episode_dict["desired_xmat"])[j],
-                                                np.array(env.logger.episode_dict["xmat"])[j]))
-        plt.plot(orientation_error_buffer)
-        plt.legend(['x', 'y', 'z'])
-        plt.title('orientation_error')
-        plt.grid()
-
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["qpos"]))
-        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        plt.title('qpos')
-        plt.grid()
-
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["qvel"]))
-        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        plt.title('qvel')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["qpos"]))
+        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        # plt.title('qpos')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["qvel"]))
+        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        # plt.title('qvel')
+        # plt.grid()
 
         # i += 1
         # plt.figure(i)
@@ -139,19 +141,19 @@ for _ in range(test_times):
         plt.title('tau')
         plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["K"]))
-        plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-        plt.title('K')
-        plt.grid()
-
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["action"])[:,7])
-        # plt.legend(['a0', 'a1', 'a2', 'a3', 'a4', 'a5'])
-        plt.title('action')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["K"]))
+        # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        # plt.title('K')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["action"]))
+        # # plt.legend(['a0', 'a1', 'a2', 'a3', 'a4', 'a5'])
+        # plt.title('action')
+        # plt.grid()
 
         i += 1
         plt.figure(i)
