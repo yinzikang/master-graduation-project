@@ -343,7 +343,7 @@ class ComputedTorqueController:
         # xposture_error = np.concatenate([desired_xpos - xpos,
         #                                  orientation_error_quat_with_mat(desired_xmat, xmat)])
         xposture_error = np.concatenate([desired_xpos - xpos,
-                                          orientation_error_quat_with_quat(desired_xquat, xquat)])
+                                         orientation_error_quat_with_quat(desired_xquat, xquat)])
         xvel_error = desired_xvel - xvel
 
         solved_acc = desired_xacc + np.multiply(kd, xvel_error) + np.multiply(kp, xposture_error)
@@ -436,10 +436,10 @@ class AdmittanceController:
         # xposture_error, xvel_error, w_c dot, related to base frame
         # xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
         #                                  orientation_error_axis_angle_with_mat(desired_xmat, self.compliant_xmat)])
+        # xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
+        #                                  orientation_error_quat_with_mat(desired_xmat, self.compliant_xmat)])
         xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
-                                         orientation_error_quat_with_mat(desired_xmat, self.compliant_xmat)])
-        xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
-                                          orientation_error_quat_with_quat(desired_xquat, self.compliant_xquat)])
+                                         orientation_error_quat_with_quat(desired_xquat, self.compliant_xquat)])
         xvel_error = desired_xvel - self.compliant_xvel
         T = np.multiply(B, xvel_error) + np.multiply(K, xposture_error) + contact_force
         solved_acc = desired_xacc + np.dot(np.linalg.inv(M), T)  # compliant_xacc

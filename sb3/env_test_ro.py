@@ -11,9 +11,10 @@ Write typical usage example here
 3/8/23 4:12 PM   yinzikang      1.0         None
 """
 
-import matplotlib.pyplot as plt
-from module.jk5_env_v5 import *
+from module.jk5_env_v5 import Jk5StickRobotWithController
 from module.env_kwargs import load_env_kwargs
+import matplotlib.pyplot as plt
+import numpy as np
 
 buffer = dict()
 rbt_kwargs, rbt_controller_kwargs, rl_kwargs = load_env_kwargs('cabinet surface with plan')
@@ -59,43 +60,52 @@ plt.grid()
 
 i += 1
 plt.figure(i)
-plt.plot(buffer["xquat"])
-plt.plot(buffer["desired_xquat"])
-plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
-plt.title(fig_title + 'xquat')
+plt.plot(np.diff(buffer["xvel"][:, :2], axis=0))
+plt.plot(np.diff(buffer["desired_xvel"][:, :2], axis=0))
+# plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+plt.legend(['x', 'y', 'dx', 'dy'])
+plt.title(fig_title + 'xpos_acc')
 plt.grid()
 
-i += 1
-plt.figure(i)
-plt.plot(buffer["xvel"][:, 3:])
-plt.plot(buffer["desired_xvel"][:, 3:])
-plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-plt.title(fig_title + 'xmat_vel')
-plt.grid()
+# i += 1
+# plt.figure(i)
+# plt.plot(buffer["xquat"])
+# plt.plot(buffer["desired_xquat"])
+# plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
+# plt.title(fig_title + 'xquat')
+# plt.grid()
 
-i += 1
-plt.figure(i)
-orientation_error_buffer = []
-for j in range(len(buffer["xquat"])):
-    orientation_error_buffer.append(orientation_error_quat_with_mat(buffer["desired_xmat"][j], buffer["xmat"][j]))
-plt.plot(orientation_error_buffer)
-plt.legend(['x', 'y', 'z'])
-plt.title(fig_title + 'orientation_error')
-plt.grid()
+# i += 1
+# plt.figure(i)
+# plt.plot(buffer["xvel"][:, 3:])
+# plt.plot(buffer["desired_xvel"][:, 3:])
+# plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+# plt.title(fig_title + 'xmat_vel')
+# plt.grid()
 
-i += 1
-plt.figure(i)
-plt.plot(buffer["qpos"])
-plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-plt.title(fig_title + 'qpos')
-plt.grid()
+# i += 1
+# plt.figure(i)
+# orientation_error_buffer = []
+# for j in range(len(buffer["xquat"])):
+#     orientation_error_buffer.append(orientation_error_quat_with_mat(buffer["desired_xmat"][j], buffer["xmat"][j]))
+# plt.plot(orientation_error_buffer)
+# plt.legend(['x', 'y', 'z'])
+# plt.title(fig_title + 'orientation_error')
+# plt.grid()
 
-i += 1
-plt.figure(i)
-plt.plot(buffer["qvel"])
-plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-plt.title(fig_title + 'qvel')
-plt.grid()
+# i += 1
+# plt.figure(i)
+# plt.plot(buffer["qpos"])
+# plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+# plt.title(fig_title + 'qpos')
+# plt.grid()
+#
+# i += 1
+# plt.figure(i)
+# plt.plot(buffer["qvel"])
+# plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+# plt.title(fig_title + 'qvel')
+# plt.grid()
 
 # i += 1
 # plt.figure(i)
@@ -109,27 +119,21 @@ i += 1
 plt.figure(i)
 plt.plot(buffer["contact_force"])
 plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-plt.title(fig_title + 'force')
+plt.title(fig_title + 'contact_force')
 plt.grid()
 
-i += 1
-plt.figure(i)
-plt.plot(buffer["tau"])
-plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-plt.title(fig_title + 'tau')
-plt.grid()
+# i += 1
+# plt.figure(i)
+# plt.plot(buffer["touch_force"])
+# # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+# plt.title(fig_title + 'touch_force')
+# plt.grid()
+#
+# i += 1
+# plt.figure(i)
+# plt.plot(buffer["tau"])
+# plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+# plt.title(fig_title + 'tau')
+# plt.grid()
 
 plt.show()
-
-# rl test
-# env = TrainEnv(**rl_kwargs)
-# if not check_env(env):
-#     print('check passed')
-# env.reset()
-# while True:
-#     # Random action
-#     a = env.action_space.sample()
-#     o, r, d, info = env.step(a)
-#     env.render(pause_start=True)
-#     if d:
-#         break

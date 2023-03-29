@@ -2,13 +2,13 @@
 # -*- encoding: utf-8 -*-
 """基于gym.Env的实现，用于sb3环境
 
-继承自v4,分割机器人与控制器
+继承自v6,添加姿态动作
 
 Write typical usage example here
 
 @Modify Time      @Author    @Version    @Description
 ------------      -------    --------    -----------
-3/2/23 11:08 AM   yinzikang      5.0         None
+3/2/23 11:08 AM   yinzikang      6.0         None
 """
 
 import numpy as np
@@ -18,6 +18,7 @@ from utils.custom_logx import EpisodeLogger
 from utils.custom_viewer import EnvViewer
 from module.controller import mat33_to_quat, to_kdl_qpos, to_numpy_qpos, to_kdl_frame, to_numpy_frame
 from gym import spaces, Env
+from module.transformations import quaternion_about_axis, rotation_matrix, quaternion_multiply
 import copy
 from spinup.utils.mpi_tools import proc_id
 
@@ -211,10 +212,14 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.controller_parameter = copy.deepcopy(self.initial_state)
         self.controller = controller()
 
-        self.desired_xposture_list = desired_xposture_list.copy()
-        self.desired_xvel_list = desired_xvel_list.copy()
-        self.desired_xacc_list = desired_xacc_list.copy()
-        self.desired_force_list = desired_force_list.copy()
+        self.init_desired_xposture_list = desired_xposture_list
+        self.init_desired_xvel_list = desired_xvel_list
+        self.init_desired_xacc_list = desired_xacc_list
+        self.init_desired_force_list = desired_force_list
+        self.desired_xposture_list = copy.deepcopy(self.init_desired_xposture_list)
+        self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
+        self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
+        self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
 
         self.status_list.extend(['controller_parameter',
                                  'desired_xpos', 'desired_xmat', 'desired_xquat', 'desired_xvel', 'desired_xacc',
@@ -225,7 +230,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
     def get_status(self):
         super().get_status()
-        self.status.update(controller_parameter=self.controller_parameter.copy(),
+        self.status.update(controller_parameter=self.controller_parameter,
                            desired_xpos=self.desired_xposture_list[self.current_step][:3],
                            desired_xmat=self.desired_xposture_list[self.current_step][3:12].reshape(3, 3),
                            desired_xquat=self.desired_xposture_list[self.current_step][12:16],
@@ -277,6 +282,10 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
         # impedance control reset
         self.controller_parameter = copy.deepcopy(self.initial_controller_parameter)
+        self.desired_xposture_list = copy.deepcopy(self.init_desired_xposture_list)
+        self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
+        self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
+        self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
 
         self.status.update(J=self.get_jacobian())
         self.status.update(timestep=self.mjc_model.opt.timestep)
@@ -314,8 +323,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
 
 # 机器人变阻抗控制
-class TrainEnv(Jk5StickRobotWithController, Env):
-
+class TrainEnvBase(Jk5StickRobotWithController, Env):
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                  controller_parameter, controller, step_num,
                  desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
@@ -339,14 +347,6 @@ class TrainEnv(Jk5StickRobotWithController, Env):
         self.observation_buffer = []
         # o, a, r，根据gym要求，设置为类变量，而不是实例变量
         self.observation_num = 3 + 3  # 观测数：3个位置+3个速度
-        self.action_num = 6  # 动作数：刚度变化量+位姿变化量
-        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num),
-                                            dtype=np.float32)  # 连续观测空间
-        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
-                                       high=1 * np.ones(self.action_num),
-                                       dtype=np.float32)  # 连续动作空间
-        self.action_limit = np.array([100, 100, 100, 10, 10, 10], dtype=np.float32)
 
         self.current_episode = -1
 
@@ -401,6 +401,77 @@ class TrainEnv(Jk5StickRobotWithController, Env):
         self.observation_buffer = []
 
         return self.get_observation()
+
+    def close(self):
+        """Override close in your subclass to perform any necessary cleanup.
+
+        Environments will automatically close() themselves when
+        garbage collected or when the program exits.
+        """
+        if hasattr(self, 'viewer'):
+            self.viewer.close()
+            del self.viewer
+
+    def seed(self, seed=None):
+        """Sets the seed for this env's random number generator(s).
+
+        Note:
+            Some environments use multiple pseudorandom number generators.
+            We want to capture all such seeds used in order to ensure that
+            there aren't accidental correlations between multiple generators.
+
+        Returns:
+            list<bigint>: Returns the list of seeds used in this env's random
+              number generators. The first value in the list should be the
+              "main" seed, or the value which a reproducer should pass to
+              'seed'. Often, the main seed equals the provided 'seed', but
+              this won't be true if seed=None, for example.
+        """
+        return
+
+    @property
+    def unwrapped(self):
+        """Completely unwrap this env.
+
+        Returns:
+            gym.Env: The base non-wrapped gym.Env instance
+        """
+        return self
+
+    def __str__(self):
+        if self.spec is None:
+            return "<{} instance>".format(type(self).__name__)
+        else:
+            return "<{}<{}>>".format(type(self).__name__, self.spec.id)
+
+    def __enter__(self):
+        """Support with-statement for the environment."""
+        return self
+
+    def __exit__(self, *args):
+        """Support with-statement for the environment."""
+        self.close()
+        # propagate exception
+        return False
+
+
+class TrainEnvVariableStiffness(TrainEnvBase):
+    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                 controller_parameter, controller, step_num,
+                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
+                 min_K, max_K, rl_frequency, observation_range):
+        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                         controller_parameter, controller, step_num,
+                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
+                         min_K, max_K, rl_frequency, observation_range)
+        self.action_num = 6  # 动作数：刚度变化量
+        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
+                                            high=np.inf * np.ones(self.observation_num),
+                                            dtype=np.float32)  # 连续观测空间
+        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
+                                       high=1 * np.ones(self.action_num),
+                                       dtype=np.float32)  # 连续动作空间
+        self.action_limit = np.array([100, 100, 100, 10, 10, 10], dtype=np.float32)
 
     def step(self, action):
         """
@@ -475,54 +546,107 @@ class TrainEnv(Jk5StickRobotWithController, Env):
 
         return self.get_observation(), reward, done, other_info
 
-    def close(self):
-        """Override close in your subclass to perform any necessary cleanup.
 
-        Environments will automatically close() themselves when
-        garbage collected or when the program exits.
+class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
+    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                 controller_parameter, controller, step_num,
+                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
+                 min_K, max_K, rl_frequency, observation_range):
+        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
+                         controller_parameter, controller, step_num,
+                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
+                         min_K, max_K, rl_frequency, observation_range)
+        self.action_num = 6 + 3 + 4  # 动作数：刚度变化量+位姿变化量
+        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
+                                            high=np.inf * np.ones(self.observation_num),
+                                            dtype=np.float32)  # 连续观测空间
+        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
+                                       high=1 * np.ones(self.action_num),
+                                       dtype=np.float32)  # 连续动作空间
+        self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+                                      0.01, 0.01, 0.01,  # 位置变化限制
+                                      1, 1, 1, # 旋转轴变化限制，无意义，反正会标准化
+                                      0.001], dtype=np.float32)  # 姿态的角度变化限制
+
+    def step(self, action):
         """
-        if hasattr(self, 'viewer'):
-            self.viewer.close()
-            del self.viewer
-
-    def seed(self, seed=None):
-        """Sets the seed for this env's random number generator(s).
-
-        Note:
-            Some environments use multiple pseudorandom number generators.
-            We want to capture all such seeds used in order to ensure that
-            there aren't accidental correlations between multiple generators.
-
-        Returns:
-            list<bigint>: Returns the list of seeds used in this env's random
-              number generators. The first value in the list should be the
-              "main" seed, or the value which a reproducer should pass to
-              'seed'. Often, the main seed equals the provided 'seed', but
-              this won't be true if seed=None, for example.
+        运行动作，获得下一次观测
+        :param action:
+        :return:
         """
-        return
+        # 其余状态的初始化
+        reward = 0
+        done = False
+        other_info = dict()
+        # 对多次执行机器人控制
+        sub_step = 0
+        action = self.action_limit * action
+        for sub_step in range(self.sub_step_num):
+            # action，即刚度变化量，进行插值
+            self.controller_parameter['K'] += action[:6] / self.sub_step_num  # 只有z方向
+            M = self.controller_parameter['K'] / (self.wn * self.wn)
+            self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
+            self.controller_parameter['M'] = np.diag(M)
+            # print(self.controller_parameter['K'])
 
-    @property
-    def unwrapped(self):
-        """Completely unwrap this env.
+            pos, direction, angle = action[6:9], action[9:12] / np.linalg.norm(action[9:12]), action[12]
+            mat = rotation_matrix(angle, direction)[:3, :3]
+            quat = quaternion_about_axis(angle, direction)
+            self.status['desired_xpos'] += pos
+            self.status['desired_xmat'] = mat @ self.status['desired_xmat']
+            self.status['desired_xquat'] = quaternion_multiply(quat, self.status['desired_xquat'])
+            # print(self.status['desired_xpos'])
 
-        Returns:
-            gym.Env: The base non-wrapped gym.Env instance
-        """
-        return self
+            # 可视化
+            if hasattr(self, 'viewer'):
+                self.viewer.render()
+            if hasattr(self, 'logger'):
+                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy(),
+                                         xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
+                                         qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
+                                         contact_force=self.status["contact_force"].copy(),
+                                         nft_force=self.status["nft_force"].copy(),
+                                         K=self.controller_parameter['K'].copy(),
+                                         desired_xpos=self.status["desired_xpos"].copy(),
+                                         desired_xmat=self.status["desired_xmat"].copy(),
+                                         desired_xquat=self.status["desired_xquat"].copy(),
+                                         desired_xvel=self.status["desired_xvel"].copy(),
+                                         desired_xacc=self.status["desired_xacc"].copy(),
+                                         desired_force=self.status["desired_force"].copy(),
+                                         tau=self.status["tau"].copy())
 
-    def __str__(self):
-        if self.spec is None:
-            return "<{} instance>".format(type(self).__name__)
-        else:
-            return "<{}<{}>>".format(type(self).__name__, self.spec.id)
+            super().step()
+            success, error_K, error_force = False, False, False
+            # 时间约束：到达最大时间，视为done
+            if self.current_step + 1 == self.step_num:
+                success = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = True, True, 'success'
+            # 刚度约束：到达最大时间，视为done
+            if any(np.greater(self.controller_parameter['K'], self.max_K)) or \
+                    any(np.greater(self.min_K, self.controller_parameter['K'])):
+                error_K = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = False, False, 'error K'
+                print(self.controller_parameter['K'])
+            # 接触力约束
+            if any(np.greater(self.status['contact_force'], np.array([50, 50, 50, 50, 50, 50]))):
+                error_force = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = False, False, 'error force'
+                print(self.status['contact_force'])
+            failure = error_K or error_force
+            done = success or failure
+            self.status.update(done=done, success=success, failure=failure)
 
-    def __enter__(self):
-        """Support with-statement for the environment."""
-        return self
+            # 获得奖励
+            reward += self.get_reward()
 
-    def __exit__(self, *args):
-        """Support with-statement for the environment."""
-        self.close()
-        # propagate exception
-        return False
+            if done:
+                break
+
+        reward = reward / (sub_step + 1)
+        if hasattr(self, 'logger'):
+            self.logger.store_buffer(action=action, reward=reward)
+
+        return self.get_observation(), reward, done, other_info

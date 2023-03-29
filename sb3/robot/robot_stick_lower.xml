@@ -10,7 +10,7 @@
         <mesh name="link6" file="link6.STL" />
     </asset>
     <worldbody>
-        <body name="jk5" pos="0 0 0.2">
+        <body name="jk5" pos="0 0 0">
             <body name="base_link" pos="0 0 0">
                 <geom type="mesh" contype="0" conaffinity="0" rgba="1 1 1 1" mesh="base_link"/>
                 <body name="link1" pos="0 0 0.069">

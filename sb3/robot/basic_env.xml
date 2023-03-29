@@ -1,7 +1,7 @@
 <mujoco model="basic setting">
     <compiler angle="radian" meshdir="../meshes/" inertiafromgeom="false" coordinate="local"/>
     <size njmax="5000" nconmax="1000"/>
-    <option timestep="2e-3" noslip_iterations="20">
+    <option timestep="2e-3">
         <flag contact="enable" warmstart="disable" frictionloss="enable"/>
     </option>
     <default>

@@ -378,6 +378,7 @@ class EpisodeLogger(Logger):
                 os.makedirs(result_dir)
             for k, v in self.episode_dict.items():
                 np.save(result_dir + '/' + k, np.array(v))
+            print('log has been dumped to ' + result_dir)
 
     def reset_buffer(self):
         if proc_id() == 0:
