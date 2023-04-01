@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""所有任务的参数
+"""所有任务的参数，返回，保存，加载
 
 Write detailed description here
 
@@ -12,12 +12,15 @@ Write typical usage example here
 """
 import numpy as np
 import copy
+import json
+import os
+import os.path as osp
 from module.controller import trajectory_planning_line, trajectory_planning_circle, \
     ComputedTorqueController, ImpedanceController, AdmittanceController
 from module.transformations import quaternion_matrix, quaternion_slerp, quaternion_from_matrix
 
 
-def load_env_kwargs(task=None):
+def env_kwargs(task=None, save_flag=False, save_path=None):
     """
     不同的任务给定不同参数
     期望轨迹是用末端连杆（力传感器安装位置结合逆运动学算出来的）
@@ -26,6 +29,7 @@ def load_env_kwargs(task=None):
     :param task:
     :return:
     """
+    rbt_kwargs = rbt_controller_kwargs = rl_env_kwargs = None
     if task == 'desk':
         # 实验内容
         mjc_model_path = 'robot/jk5_table_v2.xml'
@@ -127,7 +131,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
 
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'open door':
         # 实验内容
         mjc_model_path = 'robot/jk5_opendoor.xml'
@@ -192,8 +195,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'close door':
         # 实验内容
         mjc_model_path = 'robot/jk5_door.xml'
@@ -259,8 +260,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
 
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
-
     elif task == 'cabinet surface':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_v1.xml'
@@ -303,8 +302,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'cabinet surface with plan':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_surface.xml'
@@ -334,7 +331,7 @@ def load_env_kwargs(task=None):
         M_matrix = np.diag(M)
         B = 2 * damping_ratio * np.sqrt(M * K)
         controller_parameter = {'M': M_matrix, 'B': B, 'K': K}
-        controller = ImpedanceController
+        controller = AdmittanceController
         # wn = 20
         # damping_ratio = np.sqrt(2)
         # kp = wn * wn * np.ones(6, dtype=np.float64)
@@ -343,6 +340,7 @@ def load_env_kwargs(task=None):
         # controller = ComputedTorqueController
         min_K = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
+        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
                           p_bias=p_bias, r_bias=r_bias)
         # 用于Jk5StickStiffnessEnv的超参数
@@ -354,10 +352,8 @@ def load_env_kwargs(task=None):
 
         # 用于TrainEnv的超参数
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
-        rl_env_kwargs.update(min_K=min_K, max_K=max_K,
+        rl_env_kwargs.update(min_K=min_K, max_K=max_K, max_force=max_force,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'cabinet surface abandoned':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_v2.xml'
@@ -401,8 +397,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
 
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
-
     elif task == 'cabinet drawer open':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_drawer.xml'
@@ -445,15 +439,13 @@ def load_env_kwargs(task=None):
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'cabinet drawer open with plan':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_drawer.xml'
         qpos_init_list = np.array([0, 1.16644734e+01, -9.85767024e+01, 8.69122291e+01, 90, 0]) / 180 * np.pi
         p_bias = np.zeros(3)
         r_bias = np.eye(3)
-        rl_frequency = 20  # 500可以整除，越大越多
+        rl_frequency = 5  # 500可以整除，越大越多
         observation_range = 1
         step_num = 2000
         time_whole = 4
@@ -478,6 +470,7 @@ def load_env_kwargs(task=None):
         controller = AdmittanceController
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
+        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
                           p_bias=p_bias, r_bias=r_bias)
         # 用于Jk5StickStiffnessEnv的超参数
@@ -489,10 +482,8 @@ def load_env_kwargs(task=None):
 
         # 用于TrainEnv的超参数
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
-        rl_env_kwargs.update(min_K=min_K, max_K=max_K,
+        rl_env_kwargs.update(min_K=min_K, max_K=max_K, max_force=max_force,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'cabinet drawer close':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_v2.xml'
@@ -536,8 +527,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
 
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
-
     elif task == 'cabinet door open':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_v2.xml'
@@ -580,8 +569,6 @@ def load_env_kwargs(task=None):
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
     elif task == 'cabinet door close':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_v2.xml'
@@ -626,6 +613,59 @@ def load_env_kwargs(task=None):
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
 
-        return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
+    if save_flag:
+        save_env_kwargs(save_path, rl_env_kwargs)
+    return rbt_kwargs, rbt_controller_kwargs, rl_env_kwargs
 
-    return None
+
+def save_env_kwargs(save_path=None, kwargs_dict=None):
+    config_json = convert_json(kwargs_dict)
+    if not osp.exists(save_path):
+        os.makedirs(save_path)
+    output = json.dumps(config_json, separators=(',', ':\t'), indent=4, sort_keys=True)
+    with open(osp.join(save_path, "env_kwargs_dict.json"), 'w') as out:
+        out.write(output)
+
+
+def load_env_kwargs(task=None):
+    return 0
+
+
+def convert_json(obj):
+    """ Convert obj to a version which can be serialized with JSON. """
+    """复杂的类型不会经过任何支路，直接输出str(obj)
+        很多类型如类、方法都是有默认的str的，所以不用操心，只需要把自己想特别处理的加上即可
+    """
+    if is_json_serializable(obj):
+        return obj
+    else:
+        if isinstance(obj, dict):
+            return {convert_json(k): convert_json(v)
+                    for k, v in obj.items()}
+
+        elif isinstance(obj, tuple):
+            return (convert_json(x) for x in obj)
+
+        elif isinstance(obj, list):
+            return [convert_json(x) for x in obj]
+
+        elif isinstance(obj, np.ndarray):
+            return convert_json(obj.tolist())
+
+        elif hasattr(obj, '__name__') and not ('lambda' in obj.__name__):
+            return convert_json(obj.__name__)
+
+        elif hasattr(obj, '__dict__') and obj.__dict__:
+            obj_dict = {convert_json(k): convert_json(v)
+                        for k, v in obj.__dict__.items()}
+            return {str(obj): obj_dict}
+
+        return str(obj)
+
+
+def is_json_serializable(v):
+    try:
+        json.dumps(v)
+        return True
+    except:
+        return False

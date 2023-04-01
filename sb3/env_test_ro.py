@@ -11,9 +11,9 @@ Write typical usage example here
 3/8/23 4:12 PM   yinzikang      1.0         None
 """
 
-from module.jk5_env_v5 import Jk5StickRobotWithController
-# from module.jk5_env_v6 import Jk5StickRobotWithController
-from module.env_kwargs import load_env_kwargs
+# from module.jk5_env_v5 import Jk5StickRobotWithController
+from module.jk5_env_v6 import Jk5StickRobotWithController
+from module.env_kwargs import env_kwargs
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -22,7 +22,7 @@ plot_flag = True
 
 for i in range(test_times):
     buffer = dict()
-    rbt_kwargs, rbt_controller_kwargs, rl_kwargs = load_env_kwargs('cabinet drawer open with plan')
+    rbt_kwargs, rbt_controller_kwargs, rl_kwargs = env_kwargs('cabinet surface with plan')
     env = Jk5StickRobotWithController(**rbt_controller_kwargs)
     env.reset()
     for status_name in env.status_list:

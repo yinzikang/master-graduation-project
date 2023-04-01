@@ -240,7 +240,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                            desired_force=self.desired_force_list[self.current_step],
                            tau=np.array(self.data.ctrl[:]),
                            timestep=self.mjc_model.opt.timestep,
-                           current_step = self.current_step)
+                           current_step=self.current_step)
 
     def reset(self):
         """
@@ -305,9 +305,10 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         mp.mj_step1(self.mjc_model, self.data)
 
         self.current_step += 1
-        self.get_status()
+        if self.current_step < self.step_num:
+            self.get_status()
 
-    def logger_init(self, output_dir=None):
+    def logger_init(self, output_dir=None, itr=None):
         if proc_id() == 0:
             self.logger = EpisodeLogger(output_dir)
 
@@ -326,13 +327,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                  controller_parameter, controller, step_num,
                  desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, rl_frequency, observation_range):
+                 min_K, max_K, max_force, rl_frequency, observation_range):
         super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                          controller_parameter, controller, step_num,
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list)
 
         self.min_K = min_K.copy()
         self.max_K = max_K.copy()
+        self.max_force = max_force.copy()
         M = np.diagonal(controller_parameter['M'])[0]
         B = controller_parameter['B'][0]
         K = controller_parameter['K'][0]
@@ -365,19 +367,19 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
                                            self.current_step - self.observation_range)).flatten()
         return observation
 
-    def get_reward(self):
+    def get_reward(self, done, success, failure):
+        # 奖励范围： - 1.5
         xpos_error = self.status['desired_xpos'] - self.status['xpos']
         contact_force = self.status['contact_force']
         tau = self.status['tau']
-        done = self.status['done']
-        failure = self.status['failure']
 
         ## 运动状态的奖励
         movement_reward = np.sum(xpos_error[[0, 1]] ** 2)
         # fext_reward = - np.sum(
         #     np.linalg.norm(contact_force[2] - self.desired_force_list[self.current_step, 2], ord=1))
         fext_reward = - abs(contact_force[2] - self.desired_force_list[self.current_step, 2])
-        fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward  # 要是力距离期望力较近则进行额外奖励
+        # 要是力距离期望力较近则进行额外奖励
+        fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
         tau_reward = - np.sqrt(np.sum(tau ** 2))
         ## 任务结束的奖励与惩罚
         early_stop_penalty = (self.step_num - self.current_step) / self.step_num if done else 0
@@ -458,11 +460,11 @@ class TrainEnvVariableStiffness(TrainEnvBase):
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                  controller_parameter, controller, step_num,
                  desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, rl_frequency, observation_range):
+                 min_K, max_K,max_force, rl_frequency, observation_range):
         super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                          controller_parameter, controller, step_num,
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                         min_K, max_K, rl_frequency, observation_range)
+                         min_K, max_K,max_force, rl_frequency, observation_range)
         self.action_num = 6  # 动作数：刚度变化量
         self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
                                             high=np.inf * np.ones(self.observation_num),
@@ -496,14 +498,14 @@ class TrainEnvVariableStiffness(TrainEnvBase):
             if hasattr(self, 'viewer'):
                 self.viewer.render()
             if hasattr(self, 'logger'):
-                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy(),
+                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
                                          xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
                                          qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
                                          contact_force=self.status["contact_force"].copy(),
                                          nft_force=self.status["nft_force"].copy(),
                                          K=self.controller_parameter['K'].copy(),
                                          desired_xpos=self.status["desired_xpos"].copy(),
-                                         desired_xmat=self.status["desired_xmat"].copy(),
+                                         desired_xmat=self.status["desired_xmat"].copy().reshape(-1),
                                          desired_xquat=self.status["desired_xquat"].copy(),
                                          desired_xvel=self.status["desired_xvel"].copy(),
                                          desired_xacc=self.status["desired_xacc"].copy(),
@@ -524,7 +526,7 @@ class TrainEnvVariableStiffness(TrainEnvBase):
                     'terminal info'] = False, False, 'error K'
                 print(self.controller_parameter['K'])
             # 接触力约束
-            if any(np.greater(self.status['contact_force'], np.array([50, 50, 50, 50, 50, 50]))):
+            if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
@@ -541,6 +543,8 @@ class TrainEnvVariableStiffness(TrainEnvBase):
         reward = reward / (sub_step + 1)
         if hasattr(self, 'logger'):
             self.logger.store_buffer(action=action, reward=reward)
+            if done:
+                self.logger.dump_buffer()
 
         return self.get_observation(), reward, done, other_info
 
@@ -549,11 +553,11 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                  controller_parameter, controller, step_num,
                  desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, rl_frequency, observation_range):
+                 min_K, max_K,max_force, rl_frequency, observation_range):
         super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                          controller_parameter, controller, step_num,
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                         min_K, max_K, rl_frequency, observation_range)
+                         min_K, max_K,max_force, rl_frequency, observation_range)
         self.action_num = 6 + 3 + 4  # 动作数：刚度变化量+位姿变化量
         self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
                                             high=np.inf * np.ones(self.observation_num),
@@ -580,13 +584,12 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
         sub_step = 0
         action = self.action_limit * action
         for sub_step in range(self.sub_step_num):
-            # action，即刚度变化量，进行插值
+            # 刚度变化量，进行插值
             self.controller_parameter['K'] += action[:6] / self.sub_step_num  # 只有z方向
             M = self.controller_parameter['K'] / (self.wn * self.wn)
             self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
             self.controller_parameter['M'] = np.diag(M)
-            # print(self.controller_parameter['K'])
-
+            # 位姿变化量，直接叠加
             pos, direction, angle = action[6:9], action[9:12] / np.linalg.norm(action[9:12]), action[12]
             mat = rotation_matrix(angle, direction)[:3, :3]
             quat = quaternion_about_axis(angle, direction)
@@ -598,14 +601,14 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
             if hasattr(self, 'viewer'):
                 self.viewer.render()
             if hasattr(self, 'logger'):
-                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy(),
+                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
                                          xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
                                          qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
                                          contact_force=self.status["contact_force"].copy(),
                                          nft_force=self.status["nft_force"].copy(),
                                          K=self.controller_parameter['K'].copy(),
                                          desired_xpos=self.status["desired_xpos"].copy(),
-                                         desired_xmat=self.status["desired_xmat"].copy(),
+                                         desired_xmat=self.status["desired_xmat"].copy().reshape(-1),
                                          desired_xquat=self.status["desired_xquat"].copy(),
                                          desired_xvel=self.status["desired_xvel"].copy(),
                                          desired_xacc=self.status["desired_xacc"].copy(),
@@ -626,8 +629,8 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
                 print(self.controller_parameter['K'])
-            # 接触力约束
-            if any(np.greater(self.status['contact_force'], np.array([50, 50, 50, 50, 50, 50]))):
+            # 接触力约束：超过范围，视为done
+            if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
@@ -637,7 +640,7 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
             self.status.update(done=done, success=success, failure=failure)
 
             # 获得奖励
-            reward += self.get_reward()
+            reward += self.get_reward(done, success, failure)
 
             if done:
                 break
@@ -645,5 +648,7 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
         reward = reward / (sub_step + 1)
         if hasattr(self, 'logger'):
             self.logger.store_buffer(action=action, reward=reward)
+            if done:
+                self.logger.dump_buffer()
 
         return self.get_observation(), reward, done, other_info

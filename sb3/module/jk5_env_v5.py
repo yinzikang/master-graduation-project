@@ -234,7 +234,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                            desired_force=self.desired_force_list[self.current_step],
                            tau=np.array(self.data.ctrl[:]),
                            timestep=self.mjc_model.opt.timestep,
-                           current_step = self.current_step)
+                           current_step=self.current_step)
 
     def reset(self):
         """
