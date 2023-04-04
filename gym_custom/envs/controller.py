@@ -16,8 +16,8 @@ Write typical usage example here
 import copy
 import PyKDL as kdl
 import numpy as np
-from module.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_conjugate, quaternion_multiply, \
-    quaternion_inverse
+from gym_custom.envs.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_conjugate, \
+    quaternion_multiply, quaternion_inverse
 import matplotlib.pyplot as plt
 
 

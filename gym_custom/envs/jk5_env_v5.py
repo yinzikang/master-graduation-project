@@ -2,24 +2,22 @@
 # -*- encoding: utf-8 -*-
 """基于gym.Env的实现，用于sb3环境
 
-继承自v6,添加姿态动作
-log更加合理
+继承自v4,分割机器人与控制器
 
 Write typical usage example here
 
 @Modify Time      @Author    @Version    @Description
 ------------      -------    --------    -----------
-3/2/23 11:08 AM   yinzikang      6.0         None
+3/2/23 11:08 AM   yinzikang      5.0         None
 """
-
+import os
 import numpy as np
 import mujoco as mp
 import PyKDL as kdl
-from utils.custom_logx import EpisodeLogger
-from utils.custom_viewer import EnvViewer
-from module.controller import mat33_to_quat, to_kdl_qpos, to_numpy_qpos, to_kdl_frame, to_numpy_frame
+from gym_custom.utils.custom_logx import EpisodeLogger
+from gym_custom.utils.custom_viewer import EnvViewer
+from gym_custom.envs.controller import mat33_to_quat, to_kdl_qpos, to_numpy_qpos, to_kdl_frame, to_numpy_frame
 from gym import spaces, Env
-from module.transformations import quaternion_about_axis, rotation_matrix, quaternion_multiply
 import copy
 from spinup.utils.mpi_tools import proc_id
 
@@ -33,7 +31,9 @@ class Jk5StickRobot:
         self.qpos_init_list = qpos_init_list
         self.task = task
         # 两个模型
-        self.mjc_model = mp.MjModel.from_xml_path(filename=mjc_model_path, assets=None)
+        env_absolute_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        xml_absolute_path = os.path.join(env_absolute_path, mjc_model_path)
+        self.mjc_model = mp.MjModel.from_xml_path(filename=xml_absolute_path, assets=None)
         self.kdl_model = self.create_kdl_model()
         self.control_frequency = int(1 / self.mjc_model.opt.timestep)  # 控制频率
         self.p_bias = p_bias.copy()  # mujoco模型的位置偏置
@@ -213,14 +213,10 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.controller_parameter = copy.deepcopy(self.initial_state)
         self.controller = controller()
 
-        self.init_desired_xposture_list = desired_xposture_list
-        self.init_desired_xvel_list = desired_xvel_list
-        self.init_desired_xacc_list = desired_xacc_list
-        self.init_desired_force_list = desired_force_list
-        self.desired_xposture_list = copy.deepcopy(self.init_desired_xposture_list)
-        self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
-        self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
-        self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
+        self.desired_xposture_list = desired_xposture_list.copy()
+        self.desired_xvel_list = desired_xvel_list.copy()
+        self.desired_xacc_list = desired_xacc_list.copy()
+        self.desired_force_list = desired_force_list.copy()
 
         self.status_list.extend(['controller_parameter',
                                  'desired_xpos', 'desired_xmat', 'desired_xquat', 'desired_xvel', 'desired_xacc',
@@ -231,7 +227,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
     def get_status(self):
         super().get_status()
-        self.status.update(controller_parameter=self.controller_parameter,
+        self.status.update(controller_parameter=self.controller_parameter.copy(),
                            desired_xpos=self.desired_xposture_list[self.current_step][:3],
                            desired_xmat=self.desired_xposture_list[self.current_step][3:12].reshape(3, 3),
                            desired_xquat=self.desired_xposture_list[self.current_step][12:16],
@@ -283,12 +279,9 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
         mp.mj_forward(self.mjc_model, self.data)
 
-        # impedance control reset #####################################################################
+        # impedance control reset
         self.controller_parameter = copy.deepcopy(self.initial_controller_parameter)
-        self.desired_xposture_list = copy.deepcopy(self.init_desired_xposture_list)
-        self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
-        self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
-        self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
+
         self.status.update(J=self.get_jacobian())
         self.current_step = 0
         self.get_status()
@@ -308,7 +301,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         if self.current_step < self.step_num:
             self.get_status()
 
-    def logger_init(self, output_dir=None, itr=None):
+    def logger_init(self, output_dir=None):
         if proc_id() == 0:
             self.logger = EpisodeLogger(output_dir)
 
@@ -323,18 +316,18 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
 
 # 机器人变阻抗控制
-class TrainEnvBase(Jk5StickRobotWithController, Env):
+class TrainEnv(Jk5StickRobotWithController, Env):
+
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                  controller_parameter, controller, step_num,
                  desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, max_force, rl_frequency, observation_range):
+                 min_K, max_K, rl_frequency, observation_range):
         super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                          controller_parameter, controller, step_num,
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list)
 
         self.min_K = min_K.copy()
         self.max_K = max_K.copy()
-        self.max_force = max_force.copy()
         M = np.diagonal(controller_parameter['M'])[0]
         B = controller_parameter['B'][0]
         K = controller_parameter['K'][0]
@@ -348,6 +341,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         self.observation_buffer = []
         # o, a, r，根据gym要求，设置为类变量，而不是实例变量
         self.observation_num = 3 + 3  # 观测数：3个位置+3个速度
+        self.action_num = 6  # 动作数：刚度变化量+位姿变化量
+        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
+                                            high=np.inf * np.ones(self.observation_num),
+                                            dtype=np.float32)  # 连续观测空间
+        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
+                                       high=1 * np.ones(self.action_num),
+                                       dtype=np.float32)  # 连续动作空间
+        self.action_limit = np.array([100, 100, 100, 10, 10, 10], dtype=np.float32)
 
         self.current_episode = -1
 
@@ -368,7 +369,6 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         return observation
 
     def get_reward(self, done, success, failure):
-        # 奖励范围： - 1.5
         xpos_error = self.status['desired_xpos'] - self.status['xpos']
         contact_force = self.status['contact_force']
         tau = self.status['tau']
@@ -378,8 +378,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         # fext_reward = - np.sum(
         #     np.linalg.norm(contact_force[2] - self.desired_force_list[self.current_step, 2], ord=1))
         fext_reward = - abs(contact_force[2] - self.desired_force_list[self.current_step, 2])
-        # 要是力距离期望力较近则进行额外奖励
-        fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+        fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward  # 要是力距离期望力较近则进行额外奖励
         tau_reward = - np.sqrt(np.sum(tau ** 2))
         ## 任务结束的奖励与惩罚
         early_stop_penalty = (self.step_num - self.current_step) / self.step_num if done else 0
@@ -402,6 +401,78 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         self.observation_buffer = []
 
         return self.get_observation()
+
+    def step(self, action):
+        """
+        运行动作，获得下一次观测
+        :param action:
+        :return:
+        """
+        # 其余状态的初始化
+        reward = 0
+        done, success, error_K, error_force = False, False, False, False
+        other_info = dict()
+        # 对多次执行机器人控制
+        sub_step = 0
+        for sub_step in range(self.sub_step_num):
+            # action，即刚度变化量，进行插值
+            self.controller_parameter['K'] += self.action_limit * action / self.sub_step_num  # 只有z方向
+            M = self.controller_parameter['K'] / (self.wn * self.wn)
+            self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
+            self.controller_parameter['M'] = np.diag(M)
+            # print(self.controller_parameter['K'])
+            super().step()
+            # 可视化
+            if hasattr(self, 'viewer'):
+                self.viewer.render()
+            if hasattr(self, 'logger'):
+                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy(),
+                                         xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
+                                         qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
+                                         contact_force=self.status["contact_force"].copy(),
+                                         nft_force=self.status["nft_force"].copy(),
+                                         K=self.controller_parameter['K'].copy(),
+                                         desired_xpos=self.status["desired_xpos"].copy(),
+                                         desired_xmat=self.status["desired_xmat"].copy(),
+                                         desired_xquat=self.status["desired_xquat"].copy(),
+                                         desired_xvel=self.status["desired_xvel"].copy(),
+                                         desired_xacc=self.status["desired_xacc"].copy(),
+                                         desired_force=self.status["desired_force"].copy(),
+                                         tau=self.status["tau"].copy())
+
+            success, error_K, error_force = False, False, False
+            # 时间约束：到达最大时间，视为done
+            if self.current_step + 1 == self.step_num:
+                success = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = True, True, 'success'
+            # 刚度约束：到达最大时间，视为done
+            if any(np.greater(self.controller_parameter['K'], self.max_K)) or \
+                    any(np.greater(self.min_K, self.controller_parameter['K'])):
+                error_K = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = False, False, 'error K'
+                print(self.controller_parameter['K'])
+            # 接触力约束
+            if any(np.greater(self.status['contact_force'], np.array([50, 50, 50, 50, 50, 50]))):
+                error_force = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = False, False, 'error force'
+                print(self.status['contact_force'])
+            failure = error_K or error_force
+            done = success or failure
+
+            # 获得奖励
+            reward += self.get_reward(done, success, failure)
+
+            if done:
+                break
+
+        reward = reward / (sub_step + 1)
+        if hasattr(self, 'logger'):
+            self.logger.store_buffer(action=action, reward=reward)
+
+        return self.get_observation(), reward, done, other_info
 
     def close(self):
         """Override close in your subclass to perform any necessary cleanup.
@@ -454,201 +525,3 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         self.close()
         # propagate exception
         return False
-
-
-class TrainEnvVariableStiffness(TrainEnvBase):
-    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                 controller_parameter, controller, step_num,
-                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K,max_force, rl_frequency, observation_range):
-        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                         controller_parameter, controller, step_num,
-                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                         min_K, max_K,max_force, rl_frequency, observation_range)
-        self.action_num = 6  # 动作数：刚度变化量
-        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num),
-                                            dtype=np.float32)  # 连续观测空间
-        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
-                                       high=1 * np.ones(self.action_num),
-                                       dtype=np.float32)  # 连续动作空间
-        self.action_limit = np.array([100, 100, 100, 10, 10, 10], dtype=np.float32)
-
-    def step(self, action):
-        """
-        运行动作，获得下一次观测
-        :param action:
-        :return:
-        """
-        # 其余状态的初始化
-        reward = 0
-        done, success, error_K, error_force = False, False, False, False
-        other_info = dict()
-        # 对多次执行机器人控制
-        sub_step = 0
-        for sub_step in range(self.sub_step_num):
-            # action，即刚度变化量，进行插值
-            self.controller_parameter['K'] += self.action_limit * action / self.sub_step_num  # 只有z方向
-            M = self.controller_parameter['K'] / (self.wn * self.wn)
-            self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
-            self.controller_parameter['M'] = np.diag(M)
-            # print(self.controller_parameter['K'])
-            super().step()
-            # 可视化
-            if hasattr(self, 'viewer'):
-                self.viewer.render()
-            if hasattr(self, 'logger'):
-                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
-                                         xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
-                                         qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
-                                         contact_force=self.status["contact_force"].copy(),
-                                         nft_force=self.status["nft_force"].copy(),
-                                         K=self.controller_parameter['K'].copy(),
-                                         desired_xpos=self.status["desired_xpos"].copy(),
-                                         desired_xmat=self.status["desired_xmat"].copy().reshape(-1),
-                                         desired_xquat=self.status["desired_xquat"].copy(),
-                                         desired_xvel=self.status["desired_xvel"].copy(),
-                                         desired_xacc=self.status["desired_xacc"].copy(),
-                                         desired_force=self.status["desired_force"].copy(),
-                                         tau=self.status["tau"].copy())
-
-            success, error_K, error_force = False, False, False
-            # 时间约束：到达最大时间，视为done
-            if self.current_step + 1 == self.step_num:
-                success = True
-                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
-                    'terminal info'] = True, True, 'success'
-            # 刚度约束：到达最大时间，视为done
-            if any(np.greater(self.controller_parameter['K'], self.max_K)) or \
-                    any(np.greater(self.min_K, self.controller_parameter['K'])):
-                error_K = True
-                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
-                    'terminal info'] = False, False, 'error K'
-                print(self.controller_parameter['K'])
-            # 接触力约束
-            if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
-                error_force = True
-                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
-                    'terminal info'] = False, False, 'error force'
-                print(self.status['contact_force'])
-            failure = error_K or error_force
-            done = success or failure
-
-            # 获得奖励
-            reward += self.get_reward(done, success, failure)
-
-            if done:
-                break
-
-        reward = reward / (sub_step + 1)
-        if hasattr(self, 'logger'):
-            self.logger.store_buffer(action=action, reward=reward)
-            if done:
-                self.logger.dump_buffer()
-
-        return self.get_observation(), reward, done, other_info
-
-
-class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
-    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                 controller_parameter, controller, step_num,
-                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K,max_force, rl_frequency, observation_range):
-        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                         controller_parameter, controller, step_num,
-                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                         min_K, max_K,max_force, rl_frequency, observation_range)
-        self.action_num = 6 + 3 + 4  # 动作数：刚度变化量+位姿变化量
-        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num),
-                                            dtype=np.float32)  # 连续观测空间
-        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
-                                       high=1 * np.ones(self.action_num),
-                                       dtype=np.float32)  # 连续动作空间
-        self.action_limit = np.array([100, 100, 100, 10, 10, 10,
-                                      0.01, 0.01, 0.01,  # 位置变化限制
-                                      1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
-                                      0.001], dtype=np.float32)  # 姿态的角度变化限制
-
-    def step(self, action):
-        """
-        运行动作，获得下一次观测
-        :param action:
-        :return:
-        """
-        # 其余状态的初始化
-        reward = 0
-        done = False
-        other_info = dict()
-        # 对多次执行机器人控制
-        sub_step = 0
-        action = self.action_limit * action
-        for sub_step in range(self.sub_step_num):
-            # 刚度变化量，进行插值
-            self.controller_parameter['K'] += action[:6] / self.sub_step_num  # 只有z方向
-            M = self.controller_parameter['K'] / (self.wn * self.wn)
-            self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
-            self.controller_parameter['M'] = np.diag(M)
-            # 位姿变化量，直接叠加
-            pos, direction, angle = action[6:9], action[9:12] / np.linalg.norm(action[9:12]), action[12]
-            mat = rotation_matrix(angle, direction)[:3, :3]
-            quat = quaternion_about_axis(angle, direction)
-            self.status['desired_xpos'] += pos
-            self.status['desired_xmat'] = mat @ self.status['desired_xmat']
-            self.status['desired_xquat'] = quaternion_multiply(quat, self.status['desired_xquat'])
-
-            # 可视化
-            if hasattr(self, 'viewer'):
-                self.viewer.render()
-            if hasattr(self, 'logger'):
-                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
-                                         xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
-                                         qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
-                                         contact_force=self.status["contact_force"].copy(),
-                                         nft_force=self.status["nft_force"].copy(),
-                                         K=self.controller_parameter['K'].copy(),
-                                         desired_xpos=self.status["desired_xpos"].copy(),
-                                         desired_xmat=self.status["desired_xmat"].copy().reshape(-1),
-                                         desired_xquat=self.status["desired_xquat"].copy(),
-                                         desired_xvel=self.status["desired_xvel"].copy(),
-                                         desired_xacc=self.status["desired_xacc"].copy(),
-                                         desired_force=self.status["desired_force"].copy(),
-                                         tau=self.status["tau"].copy())
-
-            super().step()
-            success, error_K, error_force = False, False, False
-            # 时间约束：到达最大时间，视为done
-            if self.current_step + 1 == self.step_num:
-                success = True
-                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
-                    'terminal info'] = True, True, 'success'
-            # 刚度约束：到达最大时间，视为done
-            if any(np.greater(self.controller_parameter['K'], self.max_K)) or \
-                    any(np.greater(self.min_K, self.controller_parameter['K'])):
-                error_K = True
-                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
-                    'terminal info'] = False, False, 'error K'
-                print(self.controller_parameter['K'])
-            # 接触力约束：超过范围，视为done
-            if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
-                error_force = True
-                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
-                    'terminal info'] = False, False, 'error force'
-                print(self.status['contact_force'])
-            failure = error_K or error_force
-            done = success or failure
-            self.status.update(done=done, success=success, failure=failure)
-
-            # 获得奖励
-            reward += self.get_reward(done, success, failure)
-
-            if done:
-                break
-
-        reward = reward / (sub_step + 1)
-        if hasattr(self, 'logger'):
-            self.logger.store_buffer(action=action, reward=reward)
-            if done:
-                self.logger.dump_buffer()
-
-        return self.get_observation(), reward, done, other_info

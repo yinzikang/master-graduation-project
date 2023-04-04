@@ -11,9 +11,9 @@ Write typical usage example here
 3/8/23 4:12 PM   yinzikang      1.0         None
 """
 
-# from module.jk5_env_v5 import Jk5StickRobotWithController
-from module.jk5_env_v6 import Jk5StickRobotWithController
-from module.env_kwargs import env_kwargs
+# from gym_custom.envs.jk5_env_v5 import Jk5StickRobotWithController
+from gym_custom.envs.jk5_env_v6 import Jk5StickRobotWithController
+from gym_custom.envs.env_kwargs import env_kwargs
 import matplotlib.pyplot as plt
 import numpy as np
 

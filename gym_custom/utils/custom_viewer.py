@@ -10,7 +10,7 @@ Write typical usage example here
 ------------      -------    --------    -----------
 1/26/23 10:18 PM   yinzikang      1.0         None
 """
-from utils.mujoco_viewer.mujoco_viewer import MujocoViewer
+from gym_custom.utils.mujoco_viewer.mujoco_viewer import MujocoViewer
 import mujoco as mp
 
 

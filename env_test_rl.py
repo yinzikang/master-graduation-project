@@ -10,30 +10,37 @@ Write typical usage example here
 ------------      -------    --------    -----------
 3/28/23 9:07 PM   yinzikang      1.0         None
 """
-# from module.jk5_env_v5 import TrainEnv
-from module.jk5_env_v6 import TrainEnvVariableStiffnessAndPosture as TrainEnv
-from module.env_kwargs import env_kwargs
-from module.controller import orientation_error_quat_with_mat
+import gym
+import gym_custom
+from gym_custom.envs.jk5_env_v5 import TrainEnv
+from gym_custom.envs.jk5_env_v6 import TrainEnvVariableStiffnessAndPosture as TrainEnv
+from gym_custom.envs.env_kwargs import env_kwargs
+from gym_custom.envs.controller import orientation_error_quat_with_mat
 import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3.common.env_checker import check_env
 
 _, _, rl_kwargs = env_kwargs('cabinet surface with plan')
-env = TrainEnv(**rl_kwargs)
+
+# env = TrainEnv(**rl_kwargs)
+# env = gym.make('TrainEnvVariableStiffness-v6', **rl_kwargs)
+# env = gym.make('TrainEnvVariableStiffnessAndPosture-v6', **rl_kwargs)
+env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **dict(task_name='cabinet surface with plan'))
+
 if not check_env(env):
     print('check passed')
 
 test_times = 1
 view_flag = False
 plot_flag = True
-zero_action_flag = False
+zero_action_flag = True
 
 for _ in range(test_times):
     env.reset()
     if view_flag:
         env.viewer_init()
     if plot_flag:
-        env.logger_init('./env_test_log')
+        env.logger_init('./rl_test_results')
     R = 0
     while True:
         # Random action
@@ -42,7 +49,7 @@ for _ in range(test_times):
             # a = np.zeros_like(a)
             a[:9] = 0.0
             a[12:] = 0.0
-        a[12:] = 0.0
+        # a[12:] = 0.0
         o, r, d, info = env.step(a)
         R += r
         if d:
@@ -50,7 +57,6 @@ for _ in range(test_times):
 
     print(info['terminal info'], ' ', R)
 
-    # env.logger.dump_buffer(itr=0)
     if plot_flag:
         i = 0
 

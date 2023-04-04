@@ -15,9 +15,9 @@ import copy
 import json
 import os
 import os.path as osp
-from module.controller import trajectory_planning_line, trajectory_planning_circle, \
+from gym_custom.envs.controller import trajectory_planning_line, trajectory_planning_circle, \
     ComputedTorqueController, ImpedanceController, AdmittanceController
-from module.transformations import quaternion_matrix, quaternion_slerp, quaternion_from_matrix
+from gym_custom.envs.transformations import quaternion_matrix, quaternion_slerp, quaternion_from_matrix
 
 
 def env_kwargs(task=None, save_flag=False, save_path=None):

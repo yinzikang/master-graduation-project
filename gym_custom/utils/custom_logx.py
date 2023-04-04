@@ -23,7 +23,7 @@ import numpy as np
 import torch
 from spinup.utils.mpi_tools import proc_id, mpi_statistics_scalar
 # from spinup.utils.serialization_utils import convert_json
-from utils.custom_serialization_utils import convert_json  # 修改为自定义转换
+from gym_custom.utils.custom_serialization_utils import convert_json  # 修改为自定义转换
 
 
 class EpisodeLogger():
@@ -42,15 +42,13 @@ class EpisodeLogger():
                     self.episode_dict[k] = []
                 self.episode_dict[k].append(v)
 
-    def dump_buffer(self, itr=None, result_dir=None):
+    def dump_buffer(self):
         if proc_id() == 0:
-            if result_dir is None:
-                result_dir = self.output_dir
-            if not os.path.exists(result_dir):
-                os.makedirs(result_dir)
+            if not os.path.exists(self.output_dir):
+                os.makedirs(self.output_dir)
             for k, v in self.episode_dict.items():
-                np.save(result_dir + '/' + k, np.array(v))
-            print('log has been dumped to ' + result_dir)
+                np.save(self.output_dir + '/' + k, np.array(v))
+            print('log has been dumped to ' + self.output_dir)
 
     def reset_buffer(self):
         if proc_id() == 0:

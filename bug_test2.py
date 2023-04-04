@@ -11,10 +11,12 @@ Write typical usage example here
 3/28/23 9:59 PM   yinzikang      1.0         None
 """
 import numpy as np
-from module.transformations import random_rotation_matrix, random_quaternion
+import gym
+import gym_custom
+from gym_custom.envs.env_kwargs import env_kwargs
 
-mat = random_rotation_matrix()
-quat = random_quaternion()
-print(mat)
-print(quat)
-print(np.linalg.norm(quat))
+task = "cabinet surface with plan"
+env = gym.make('TrainEnvVariableStiffnessAndPosture-v6', **env_kwargs(task)[-1])
+# env = gym.make('FetchSlideDense-v1')
+# gym.make('Ant-v3')
+print('ccc')

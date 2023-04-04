@@ -10,7 +10,7 @@ Write typical usage example here
 ------------      -------    --------    -----------
 3/8/23 11:21 AM   yinzikang      1.0         None
 """
-from sb3_contrib import RecurrentPPO as RPPO
+from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import gym
 import gym_custom
@@ -23,7 +23,7 @@ import numpy as np
 # 环境加载
 env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
 test_name = 'cabinet surface with plan'
-rl_name = 'RPPO'
+rl_name = 'PPO'
 time_name = '04-04-20-54'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 400
@@ -43,7 +43,7 @@ _, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
 env = gym.make(env_name, **rl_kwargs)
 env.logger_init(logger_path)
 # 模型加载
-model = RPPO.load(modeL_path, env=env)
+model = PPO.load(modeL_path, env=env)
 
 # 评估
 mean_reward, std_reward = evaluate_policy(model=model, env=env, n_eval_episodes=1, deterministic=True, render=False,
