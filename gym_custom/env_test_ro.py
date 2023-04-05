@@ -14,6 +14,7 @@ Write typical usage example here
 # from gym_custom.envs.jk5_env_v5 import Jk5StickRobotWithController
 from gym_custom.envs.jk5_env_v6 import Jk5StickRobotWithController
 from gym_custom.envs.env_kwargs import env_kwargs
+from envs.controller import orientation_error_quat_with_mat
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -73,45 +74,45 @@ for i in range(test_times):
         plt.title(fig_title + 'xpos_acc')
         plt.grid()
 
-        # i += 1
-        # plt.figure(i)
-        # plt.plot(buffer["xquat"])
-        # plt.plot(buffer["desired_xquat"])
-        # plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
-        # plt.title(fig_title + 'xquat')
-        # plt.grid()
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["xquat"])
+        plt.plot(buffer["desired_xquat"])
+        plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
+        plt.title(fig_title + 'xquat')
+        plt.grid()
 
-        # i += 1
-        # plt.figure(i)
-        # plt.plot(buffer["xvel"][:, 3:])
-        # plt.plot(buffer["desired_xvel"][:, 3:])
-        # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-        # plt.title(fig_title + 'xmat_vel')
-        # plt.grid()
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["xvel"][:, 3:])
+        plt.plot(buffer["desired_xvel"][:, 3:])
+        plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+        plt.title(fig_title + 'xmat_vel')
+        plt.grid()
 
-        # i += 1
-        # plt.figure(i)
-        # orientation_error_buffer = []
-        # for j in range(len(buffer["xquat"])):
-        #     orientation_error_buffer.append(orientation_error_quat_with_mat(buffer["desired_xmat"][j], buffer["xmat"][j]))
-        # plt.plot(orientation_error_buffer)
-        # plt.legend(['x', 'y', 'z'])
-        # plt.title(fig_title + 'orientation_error')
-        # plt.grid()
+        i += 1
+        plt.figure(i)
+        orientation_error_buffer = []
+        for j in range(len(buffer["xquat"])):
+            orientation_error_buffer.append(orientation_error_quat_with_mat(buffer["desired_xmat"][j], buffer["xmat"][j]))
+        plt.plot(orientation_error_buffer)
+        plt.legend(['x', 'y', 'z'])
+        plt.title(fig_title + 'orientation_error')
+        plt.grid()
 
-        # i += 1
-        # plt.figure(i)
-        # plt.plot(buffer["qpos"])
-        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        # plt.title(fig_title + 'qpos')
-        # plt.grid()
-        #
-        # i += 1
-        # plt.figure(i)
-        # plt.plot(buffer["qvel"])
-        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        # plt.title(fig_title + 'qvel')
-        # plt.grid()
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["qpos"])
+        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        plt.title(fig_title + 'qpos')
+        plt.grid()
+
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["qvel"])
+        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        plt.title(fig_title + 'qvel')
+        plt.grid()
 
         # i += 1
         # plt.figure(i)
@@ -128,18 +129,18 @@ for i in range(test_times):
         plt.title(fig_title + 'contact_force')
         plt.grid()
 
-        # i += 1
-        # plt.figure(i)
-        # plt.plot(buffer["touch_force"])
-        # # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-        # plt.title(fig_title + 'touch_force')
-        # plt.grid()
-        #
-        # i += 1
-        # plt.figure(i)
-        # plt.plot(buffer["tau"])
-        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        # plt.title(fig_title + 'tau')
-        # plt.grid()
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["touch_force"])
+        # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        plt.title(fig_title + 'touch_force')
+        plt.grid()
+
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["tau"])
+        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        plt.title(fig_title + 'tau')
+        plt.grid()
 
         plt.show()

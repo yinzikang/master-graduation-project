@@ -13,5 +13,5 @@ register(
 )
 register(
     id='TrainEnvVariableStiffnessAndPosture-v7',
-    entry_point='gym_custom.envs:TrainEnvVariableStiffnessV7',
+    entry_point='gym_custom.envs:TrainEnvVariableStiffnessAndPostureV7',
 )

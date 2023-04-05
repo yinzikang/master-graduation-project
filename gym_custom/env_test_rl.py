@@ -11,11 +11,10 @@ Write typical usage example here
 3/28/23 9:07 PM   yinzikang      1.0         None
 """
 import gym
-import gym_custom
-from gym_custom.envs.jk5_env_v5 import TrainEnv
-from gym_custom.envs.jk5_env_v6 import TrainEnvVariableStiffnessAndPosture as TrainEnv
-from gym_custom.envs.env_kwargs import env_kwargs
-from gym_custom.envs.controller import orientation_error_quat_with_mat
+from envs.jk5_env_v5 import TrainEnv
+from envs.jk5_env_v6 import TrainEnvVariableStiffnessAndPosture as TrainEnv
+from envs.env_kwargs import env_kwargs
+from envs.controller import orientation_error_quat_with_mat
 import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3.common.env_checker import check_env
@@ -33,7 +32,7 @@ if not check_env(env):
 test_times = 1
 view_flag = False
 plot_flag = True
-zero_action_flag = True
+zero_action_flag = False
 
 for _ in range(test_times):
     env.reset()

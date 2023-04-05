@@ -351,7 +351,9 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         self.observation_buffer = []
         # o, a, r，根据gym要求，设置为类变量，而不是实例变量
         self.observation_num = 3 + 3  # 观测数：3个位置+3个速度
-
+        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
+                                            high=np.inf * np.ones(self.observation_num),
+                                            dtype=np.float32)  # 连续观测空间
         self.current_episode = -1
 
     def get_observation(self):
@@ -469,9 +471,6 @@ class TrainEnvVariableStiffness(TrainEnvBase):
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
                          min_K, max_K, max_force, rl_frequency, observation_range)
         self.action_num = 6  # 动作数：刚度变化量
-        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num),
-                                            dtype=np.float32)  # 连续观测空间
         self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
                                        high=1 * np.ones(self.action_num),
                                        dtype=np.float32)  # 连续动作空间
@@ -562,9 +561,6 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
                          min_K, max_K, max_force, rl_frequency, observation_range)
         self.action_num = 6 + 3 + 4  # 动作数：刚度变化量+位姿变化量
-        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num),
-                                            dtype=np.float32)  # 连续观测空间
         self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
                                        high=1 * np.ones(self.action_num),
                                        dtype=np.float32)  # 连续动作空间
