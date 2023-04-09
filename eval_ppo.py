@@ -24,10 +24,11 @@ import numpy as np
 env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
 test_name = 'cabinet surface with plan'
 rl_name = 'PPO'
-time_name = '04-04-20-54'
+time_name = '04-08-16-42'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
-itr = 400
+itr = 100000
 mode = 1
+save_fig = False
 
 if mode == 1:  # 评估中间模型
     logger_path = "eval_results/" + path_name + "model_" + str(itr)
@@ -46,7 +47,7 @@ env.logger_init(logger_path)
 model = PPO.load(modeL_path, env=env)
 
 # 评估
-mean_reward, std_reward = evaluate_policy(model=model, env=env, n_eval_episodes=1, deterministic=True, render=False,
+mean_reward, std_reward = evaluate_policy(model=model, env=env, n_eval_episodes=1, deterministic=False, render=False,
                                           callback=None, reward_threshold=None, return_episode_rewards=False, warn=True)
 print(mean_reward, std_reward)
 result_dict = load_episode(logger_path)
@@ -58,5 +59,6 @@ for idx, (name, series) in enumerate(result_dict.items()):
     plt.grid()
     plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
     plt.title(name)
-    plt.savefig(logger_path + '/' + name)
-# plt.show()
+    if save_fig:
+        plt.savefig(logger_path + '/' + name)
+plt.show()

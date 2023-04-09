@@ -26,6 +26,7 @@ for i in range(test_times):
     rbt_kwargs, rbt_controller_kwargs, rl_kwargs = env_kwargs('cabinet surface with plan')
     env = Jk5StickRobotWithController(**rbt_controller_kwargs)
     env.reset()
+    env.forward_kinematics(env.qpos_init_list)
     for status_name in env.status_list:
         buffer[status_name] = [env.status[status_name]]
     for _ in range(rbt_controller_kwargs['step_num']):

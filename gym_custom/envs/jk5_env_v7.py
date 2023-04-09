@@ -371,6 +371,8 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             observation = np.array(self.observation_buffer +
                                    self.observation_buffer[0] * (
                                            self.current_step - self.observation_range)).flatten()
+        if hasattr(self, 'logger'):
+            self.logger.store_buffer(observation=observation)
         return observation
 
     def get_reward(self, done, success, failure):

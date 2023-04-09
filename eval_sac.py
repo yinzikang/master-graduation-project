@@ -24,10 +24,10 @@ import numpy as np
 env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
 test_name = 'cabinet surface with plan'
 rl_name = 'SAC'
-time_name = '04-04-20-54'
+time_name = '04-05-11-30'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 400
-mode = 1
+mode = 3
 
 if mode == 1:  # 评估中间模型
     logger_path = "eval_results/" + path_name + "model_" + str(itr)

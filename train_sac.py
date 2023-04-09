@@ -25,20 +25,21 @@ test_name = 'cabinet surface with plan'
 rl_name = 'SAC'
 time_name = time.strftime("%m-%d-%H-%M")
 path_name = 'train_results/' + test_name + '/' + rl_name + '/' + time_name + '/'
+env_num = 4
 _, _, rl_kwargs = env_kwargs(test_name, save_flag=True, save_path=path_name)
-train_env = make_vec_env(env_id=env_name, n_envs=4, env_kwargs=rl_kwargs)
+train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = gym.make(env_name, **rl_kwargs)
 
 total_timesteps = 1_000_000
-policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[dict(pi=[256, 256], vf=[256, 256])])
+policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[256, 256])
 replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
-checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10), save_path=path_name, name_prefix="model",
-                                         save_replay_buffer=False, save_vecnormalize=False)
+checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / env_num), save_path=path_name,
+                                         name_prefix="model", save_replay_buffer=False, save_vecnormalize=False)
 eval_callback = EvalCallback(eval_env, best_model_save_path=path_name, log_path=path_name,
-                             eval_freq=int(total_timesteps / 10))
+                             eval_freq=int(total_timesteps / 10 / env_num))
 callback = CallbackList([checkpoint_callback, eval_callback])
 
-model = SAC('MlpPolicy', train_env, learning_rate=0.0003, policy_kwargs=None, verbose=1, seed=None,
+model = SAC('MlpPolicy', train_env, learning_rate=0.0003, policy_kwargs=policy_kwargs, verbose=1, seed=None,
             device='cuda', _init_setup_model=True, tensorboard_log='log/' + test_name + '/' + rl_name + '/' + time_name,
             use_sde=True, sde_sample_freq=-1,
             # off policy特有

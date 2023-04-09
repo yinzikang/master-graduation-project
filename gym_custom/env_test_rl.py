@@ -19,12 +19,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3.common.env_checker import check_env
 
-_, _, rl_kwargs = env_kwargs('cabinet surface with plan')
-
+task = 'cabinet surface with plan'
+_, _, rl_kwargs = env_kwargs(task)
 # env = TrainEnv(**rl_kwargs)
 # env = gym.make('TrainEnvVariableStiffness-v6', **rl_kwargs)
-# env = gym.make('TrainEnvVariableStiffnessAndPosture-v6', **rl_kwargs)
-env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **dict(task_name='cabinet surface with plan'))
+env = gym.make('TrainEnvVariableStiffnessAndPosture-v6', **rl_kwargs)
+# env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **dict(task_name=task))
 
 if not check_env(env):
     print('check passed')
@@ -39,7 +39,7 @@ for _ in range(test_times):
     if view_flag:
         env.viewer_init()
     if plot_flag:
-        env.logger_init('./rl_test_results')
+        env.logger_init('./rl_test_results/'+task)
     R = 0
     while True:
         # Random action
@@ -86,46 +86,53 @@ for _ in range(test_times):
 
         i += 1
         plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xquat"]))
-        plt.plot(np.array(env.logger.episode_dict["desired_xquat"]))
-        plt.plot(np.array(env.init_desired_xposture_list)[:, 12:16])
-        plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'idw', 'idx', 'idy', 'idz', 'idw'])
-        plt.title('xquat')
+        plt.plot(np.array(env.logger.episode_dict["desired_xacc"])[:, :3])
+        plt.legend(['dx', 'dy', 'dz'])
+        plt.title('xpos_acc')
         plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xvel"])[:, 3:])
-        plt.plot(np.array(env.logger.episode_dict["desired_xvel"])[:, 3:])
-        plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-        plt.title('xmat_vel')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xquat"]))
+        # plt.plot(np.array(env.logger.episode_dict["desired_xquat"]))
+        # plt.plot(np.array(env.init_desired_xposture_list)[:, 12:16])
+        # plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'idw', 'idx', 'idy', 'idz', 'idw'])
+        # plt.title('xquat')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xvel"])[:, 3:])
+        # plt.plot(np.array(env.logger.episode_dict["desired_xvel"])[:, 3:])
+        # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+        # plt.title('xmat_vel')
+        # plt.grid()
 
-        i += 1
-        plt.figure(i)
-        orientation_error_buffer = []
-        for j in range(len(env.logger.episode_dict["xquat"])):
-            orientation_error_buffer.append(
-                orientation_error_quat_with_mat(np.array(env.logger.episode_dict["desired_xmat"])[j].reshape([3,3]),
-                                                np.array(env.logger.episode_dict["xmat"])[j].reshape([3,3])))
-        plt.plot(orientation_error_buffer)
-        plt.legend(['x', 'y', 'z'])
-        plt.title('orientation_error')
-        plt.grid()
-
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["qpos"]))
-        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        plt.title('qpos')
-        plt.grid()
-
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["qvel"]))
-        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        plt.title('qvel')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # orientation_error_buffer = []
+        # for j in range(len(env.logger.episode_dict["xquat"])):
+        #     orientation_error_buffer.append(
+        #         orientation_error_quat_with_mat(np.array(env.logger.episode_dict["desired_xmat"])[j].reshape([3,3]),
+        #                                         np.array(env.logger.episode_dict["xmat"])[j].reshape([3,3])))
+        # plt.plot(orientation_error_buffer)
+        # plt.legend(['x', 'y', 'z'])
+        # plt.title('orientation_error')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["qpos"]))
+        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        # plt.title('qpos')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["qvel"]))
+        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        # plt.title('qvel')
+        # plt.grid()
 
         # i += 1
         # plt.figure(i)
@@ -144,12 +151,12 @@ for _ in range(test_times):
         plt.title('force')
         plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["tau"]))
-        plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
-        plt.title('tau')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["tau"]))
+        # plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+        # plt.title('tau')
+        # plt.grid()
 
         i += 1
         plt.figure(i)
@@ -160,15 +167,22 @@ for _ in range(test_times):
 
         i += 1
         plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["action"]))
-        # plt.legend(['a0', 'a1', 'a2', 'a3', 'a4', 'a5'])
-        plt.title('action')
+        plt.plot(np.array(env.logger.episode_dict["observation"]))
+        plt.legend(['px', 'py', 'pz', 'vx', 'vy', 'vz'])
+        plt.title('observation')
         plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["reward"]))
-        plt.title('reward ' + str(sum(np.array(env.logger.episode_dict["reward"]))))
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["action"]))
+        # # plt.legend(['a0', 'a1', 'a2', 'a3', 'a4', 'a5'])
+        # plt.title('action')
+        # plt.grid()
+        #
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["reward"]))
+        # plt.title('reward ' + str(sum(np.array(env.logger.episode_dict["reward"]))))
+        # plt.grid()
 
         plt.show()

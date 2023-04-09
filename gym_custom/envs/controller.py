@@ -61,7 +61,7 @@ def to_numpy_xmat(kdl_xmat):
 
 
 def to_numpy_frame(kdl_frame):
-    return to_numpy_xmat(kdl_frame.p), to_numpy_xmat(kdl_frame.M)
+    return to_numpy_xpos(kdl_frame.p), to_numpy_xmat(kdl_frame.M)
 
 
 def mat33_to_quat(xmat33):

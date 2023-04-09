@@ -330,7 +330,11 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
     def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                  controller_parameter, controller, step_num,
                  desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, max_force, rl_frequency, observation_range):
+                 min_K, max_K, max_force,
+                 min_desired_xposture, max_desired_xposture,
+                 min_desired_xvel, max_desired_xvel,
+                 min_desired_xacc, max_desired_xacc,
+                 rl_frequency, observation_range):
         super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
                          controller_parameter, controller, step_num,
                          desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list)
@@ -338,6 +342,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         self.min_K = min_K.copy()
         self.max_K = max_K.copy()
         self.max_force = max_force.copy()
+        self.min_desired_xposture = min_desired_xposture.copy()
+        self.max_desired_xposture = max_desired_xposture.copy()
+        self.min_desired_xvel = min_desired_xvel.copy()
+        self.max_desired_xvel = max_desired_xvel.copy()
+        self.min_desired_xacc = min_desired_xacc.copy()
+        self.min_desired_xacc = min_desired_xacc.copy()
+        self.max_desired_xacc = max_desired_xacc.copy()
+
         M = np.diagonal(controller_parameter['M'])[0]
         B = controller_parameter['B'][0]
         K = controller_parameter['K'][0]
@@ -361,7 +373,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         xquat = self.status['xquat']
         xpos_vel = self.status['xvel'][:3]
 
-        status = np.concatenate((xpos, xpos_vel), dtype=np.float32)
+        xpos_min = self.min_desired_xposture[:3]
+        xpos_max = self.max_desired_xposture[:3]
+        xpos_vel_min = self.min_desired_xvel[:3]
+        xpos_vel_max = self.max_desired_xvel[:3]
+        xpos_normalized = (2 * xpos - xpos_min - xpos_max) / (xpos_max - xpos_min)
+        xpos_vel_normalized = (2 * xpos_vel - xpos_vel_min - xpos_vel_max) / (xpos_vel_max - xpos_vel_min)
+
+        status = np.concatenate((xpos_normalized, xpos_vel_normalized), dtype=np.float32)
         self.observation_buffer.append(status)  # status与observation关系
         # 够长则取最近的observation_range个，不够对最远那个进行复制，observation_range×(3+4+2)
         if len(self.observation_buffer) >= self.observation_range:
@@ -370,6 +389,9 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             observation = np.array(self.observation_buffer +
                                    self.observation_buffer[0] * (
                                            self.current_step - self.observation_range)).flatten()
+        if hasattr(self, 'logger'):
+            self.logger.store_buffer(observation=observation)
+
         return observation
 
     def get_reward(self, done, success, failure):
@@ -462,14 +484,8 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
 
 
 class TrainEnvVariableStiffness(TrainEnvBase):
-    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                 controller_parameter, controller, step_num,
-                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, max_force, rl_frequency, observation_range):
-        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                         controller_parameter, controller, step_num,
-                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                         min_K, max_K, max_force, rl_frequency, observation_range)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.action_num = 6  # 动作数：刚度变化量
         self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
                                        high=1 * np.ones(self.action_num),
@@ -552,14 +568,8 @@ class TrainEnvVariableStiffness(TrainEnvBase):
 
 
 class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
-    def __init__(self, mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                 controller_parameter, controller, step_num,
-                 desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                 min_K, max_K, max_force, rl_frequency, observation_range):
-        super().__init__(mjc_model_path, task, qpos_init_list, p_bias, r_bias,
-                         controller_parameter, controller, step_num,
-                         desired_xposture_list, desired_xvel_list, desired_xacc_list, desired_force_list,
-                         min_K, max_K, max_force, rl_frequency, observation_range)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.action_num = 6 + 3 + 4  # 动作数：刚度变化量+位姿变化量
         self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
                                        high=1 * np.ones(self.action_num),
@@ -627,13 +637,13 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                 error_K = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
-                print(self.controller_parameter['K'])
+                # print(self.controller_parameter['K'])
             # 接触力约束：超过范围，视为done
             if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
-                print(self.status['contact_force'])
+                # print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
             self.status.update(done=done, success=success, failure=failure)
