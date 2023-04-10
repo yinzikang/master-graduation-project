@@ -24,10 +24,10 @@ import numpy as np
 env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
 test_name = 'cabinet surface with plan'
 rl_name = 'PPO'
-time_name = '04-08-16-42'
+time_name = '04-10-00-24'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 100000
-mode = 1
+mode = 3
 save_fig = False
 
 if mode == 1:  # 评估中间模型

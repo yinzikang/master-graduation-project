@@ -32,7 +32,7 @@ if not check_env(env):
 test_times = 1
 view_flag = False
 plot_flag = True
-zero_action_flag = False
+zero_action_flag = True
 
 for _ in range(test_times):
     env.reset()
@@ -59,37 +59,37 @@ for _ in range(test_times):
     if plot_flag:
         i = 0
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xpos"]))
-        plt.plot(np.array(env.logger.episode_dict["desired_xpos"]))
-        plt.plot(np.array(env.init_desired_xposture_list)[:, :3])
-        plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz', 'idx', 'idy', 'idz'])
-        plt.title('xpos')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xpos"]))
+        # plt.plot(np.array(env.logger.episode_dict["desired_xpos"]))
+        # plt.plot(np.array(env.init_desired_xposture_list)[:, :3])
+        # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz', 'idx', 'idy', 'idz'])
+        # plt.title('xpos')
+        # plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xpos"]) -
-                 np.array(env.logger.episode_dict["desired_xpos"]))
-        plt.legend(['x', 'y', 'z'])
-        plt.title('xpos error')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xpos"]) -
+        #          np.array(env.logger.episode_dict["desired_xpos"]))
+        # plt.legend(['x', 'y', 'z'])
+        # plt.title('xpos error')
+        # plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["xvel"])[:, :3])
-        plt.plot(np.array(env.logger.episode_dict["desired_xvel"])[:, :3])
-        plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-        plt.title('xpos_vel')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["xvel"])[:, :3])
+        # plt.plot(np.array(env.logger.episode_dict["desired_xvel"])[:, :3])
+        # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+        # plt.title('xpos_vel')
+        # plt.grid()
 
-        i += 1
-        plt.figure(i)
-        plt.plot(np.array(env.logger.episode_dict["desired_xacc"])[:, :3])
-        plt.legend(['dx', 'dy', 'dz'])
-        plt.title('xpos_acc')
-        plt.grid()
+        # i += 1
+        # plt.figure(i)
+        # plt.plot(np.array(env.logger.episode_dict["desired_xacc"])[:, :3])
+        # plt.legend(['dx', 'dy', 'dz'])
+        # plt.title('xpos_acc')
+        # plt.grid()
 
         # i += 1
         # plt.figure(i)
