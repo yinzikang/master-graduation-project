@@ -48,7 +48,7 @@ model = PPO('MlpPolicy', train_env, learning_rate=0.0003, policy_kwargs=policy_k
             ent_coef=0.0, vf_coef=0.0, max_grad_norm=0.5,
             # 算法特有参数，n_epochs=n_steps/batch_size
             n_epochs=16, clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.01)
-model.learn(total_timesteps=total_timesteps, callback=callback, log_interval=16, tb_log_name="",
+model.learn(total_timesteps=total_timesteps, callback=callback, log_interval=4, tb_log_name="",
             reset_num_timesteps=True, progress_bar=True)
 model.save(path=path_name + 'model', exclude=None, include=None)
 mean_reward, std_reward = evaluate_policy(model=model, env=eval_env, n_eval_episodes=10, deterministic=True,

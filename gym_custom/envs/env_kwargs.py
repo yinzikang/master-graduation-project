@@ -352,7 +352,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         # [0.35, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        min_desired_xposture = np.array([0.35, -0.1235, 0.55, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        min_desired_xposture = np.array([0.35, -0.1235, 0.56, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
         max_desired_xposture = np.array([0.65, -0.1035, 0.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         min_desired_xvel = -0.15 * np.ones(6)
