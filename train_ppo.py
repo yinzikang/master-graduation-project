@@ -30,7 +30,7 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = gym.make(env_name, **rl_kwargs)
 
-total_timesteps = episode_length * env_num * 2 ** 13  # 11: 655_360, 12: 1310720
+total_timesteps = episode_length * env_num * 2 ** 10  # 11: 655_360, 12: 1310720, 13: 2621440
 policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[dict(pi=[128, 128], vf=[128, 128])])
 replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
 checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / env_num),
@@ -50,7 +50,7 @@ model = PPO('MlpPolicy', train_env, learning_rate=0.0003, policy_kwargs=policy_k
             n_epochs=16, clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.01)
 model.learn(total_timesteps=total_timesteps, callback=callback, log_interval=4, tb_log_name="",
             reset_num_timesteps=True, progress_bar=True)
-model.save(path=path_name + 'model', exclude=None, include=None)
+model.save(path=path_name + 'model')
 mean_reward, std_reward = evaluate_policy(model=model, env=eval_env, n_eval_episodes=10, deterministic=True,
                                           render=False, callback=None, reward_threshold=None,
                                           return_episode_rewards=False, warn=True)

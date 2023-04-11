@@ -637,13 +637,13 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                 error_K = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
-                # print(self.controller_parameter['K'])
+                print(self.controller_parameter['K'])
             # 接触力约束：超过范围，视为done
             if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
-                # print(self.status['contact_force'])
+                print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
             self.status.update(done=done, success=success, failure=failure)

@@ -23,8 +23,8 @@ task = 'cabinet surface with plan'
 _, _, rl_kwargs = env_kwargs(task)
 # env = TrainEnv(**rl_kwargs)
 # env = gym.make('TrainEnvVariableStiffness-v6', **rl_kwargs)
-# env = gym.make('TrainEnvVariableStiffnessAndPosture-v6', **rl_kwargs)
-env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **dict(task_name=task))
+env = gym.make('TrainEnvVariableStiffnessAndPosture-v6', **rl_kwargs)
+# env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **dict(task_name=task))
 
 if not check_env(env):
     print('check passed')
@@ -32,7 +32,7 @@ if not check_env(env):
 test_times = 1
 view_flag = False
 plot_flag = True
-zero_action_flag = True
+zero_action_flag = False
 
 for _ in range(test_times):
     env.reset()

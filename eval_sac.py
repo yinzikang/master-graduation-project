@@ -59,4 +59,4 @@ for idx, (name, series) in enumerate(result_dict.items()):
     plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
     plt.title(name)
     plt.savefig(logger_path + '/' + name)
-# plt.show()
+plt.show()
