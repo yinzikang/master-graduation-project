@@ -152,6 +152,9 @@ def position_interpolation_line(init_xpos, end_xpos, time_whole, time_accelerati
 
 
 def position_interpolation_circle(init_xpos, end_xpos, mid_xpos, time_whole, time_acceleration, control_frequency):
+    """
+    z与园周运动的旋转轴相同
+    """
     # 求旋转平面与法向量
     P1 = mid_xpos - init_xpos  # 轨迹前半段
     P2 = end_xpos - mid_xpos  # 轨迹后半段
@@ -196,9 +199,10 @@ def position_interpolation_circle(init_xpos, end_xpos, mid_xpos, time_whole, tim
     a, w, p = get_trajectory_para(time_whole, time_acceleration, step_num)
     theta = p * error + init_angle
     pos_buffer = radius * np.concatenate([np.cos(theta), np.sin(theta), np.zeros_like(theta)], axis=1) + circle_origin
-    vel_buffer = w * radius * np.concatenate([-np.sin(theta), np.cos(theta), np.zeros_like(theta)], axis=1)
-    acc_buffer1 = a * radius * np.concatenate([-np.sin(theta), np.cos(theta), np.zeros_like(theta)], axis=1)
-    acc_buffer2 = w ** 2 * np.concatenate([-np.cos(theta), -np.sin(theta), np.zeros_like(theta)], axis=1)
+    vel_buffer = error * w * radius * np.concatenate([-np.sin(theta), np.cos(theta), np.zeros_like(theta)], axis=1)
+    acc_buffer1 = error * a * radius * np.concatenate([-np.sin(theta), np.cos(theta), np.zeros_like(theta)], axis=1)
+    acc_buffer2 = (error * w) ** 2 * radius * np.concatenate([-np.cos(theta), -np.sin(theta), np.zeros_like(theta)],
+                                                             axis=1)
     # 转换到空间中
     pos_buffer = (mat @ pos_buffer.transpose()).transpose() + pos
     vel_buffer = (mat @ vel_buffer.transpose()).transpose()
@@ -235,14 +239,18 @@ def orientation_interpolation(init_xmat, end_xmat, time_whole, time_acceleration
         mat_buffer = np.empty((step_num, 9))
         vel_buffer = np.empty((step_num, 3))
         acc_buffer = np.empty((step_num, 3))
+        # acc_buffer1 = np.empty((step_num, 3))
         for i in range(quat.shape[0]):
             mat_buffer[i, :] = quat_to_mat_33(quat[i, :]).reshape(-1)
-            vel_buffer[i, :] = (2 * quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :])))[:3]
+            w = quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :]))
+            vel_buffer[i, :] = (2 * w)[:3]
             acc_buffer[i, :] = 2 * (quaternion_multiply(quat_dd[i, :], quaternion_conjugate(quat[i, :])) +
                                     quaternion_multiply(
                                         quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :])),
-                                        quaternion_multiply(quat_d[i, :],
-                                                            quaternion_conjugate(quat[i, :]))))[:3]
+                                        quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :]))))[:3]
+            # acc_buffer1[i, :] = (2 * quaternion_multiply(quat_dd[i, :], quaternion_conjugate(quat[i, :])) -
+            #                     0.5 * quaternion_multiply(w, w))[:3]
+            # print(acc_buffer[i, :]-acc_buffer1[i, :])
 
     return mat_buffer, quat, vel_buffer, acc_buffer
 
@@ -301,7 +309,8 @@ def orientation_error_quat_with_mat(desired, current):
 
 def orientation_error_quat_with_quat(desired, current):
     """
-    虚部+实部，前三个当偏差
+    虚部+实部，前三个当偏差，quat的乘法顺序没有问题，当前系是动系
+    /是可以的，\不行
     转换到当前坐标系
     :param desired:
     :param current:
@@ -379,10 +388,10 @@ class ImpedanceController:
 
         # xposture_error = np.concatenate([desired_xpos - xpos,
         #                                  orientation_error_axis_angle_with_mat(desired_xmat, xmat)])
-        # xposture_error = np.concatenate([desired_xpos - xpos,
-        #                                  orientation_error_quat_with_mat(desired_xmat, xmat)])
         xposture_error = np.concatenate([desired_xpos - xpos,
-                                         orientation_error_quat_with_quat(desired_xquat, xquat)])
+                                         orientation_error_quat_with_mat(desired_xmat, xmat)])
+        # xposture_error = np.concatenate([desired_xpos - xpos,
+        #                                  orientation_error_quat_with_quat(desired_xquat, xquat)])
         xvel_error = desired_xvel - xvel
 
         # 阻抗控制率
@@ -447,19 +456,18 @@ class AdmittanceController:
         self.compliant_xvel += self.compliant_xacc * timestep
         self.compliant_xpos += self.compliant_xvel[:3] * timestep
         # 旋转矩阵微分与角速度关系
-        w_global = self.compliant_xvel[3:]
-        W = np.array([[0., -w_global[2], w_global[1]],
-                      [w_global[2], 0., -w_global[0]],
-                      [-w_global[1], w_global[0], 0.]])
+        w = self.compliant_xvel[3:]
+        W = np.array([[0., -w[2], w[1]],
+                      [w[2], 0., -w[0]],
+                      [-w[1], w[0], 0.]])
         self.compliant_xmat += W @ self.compliant_xmat * timestep
         U, S, VT = np.linalg.svd(self.compliant_xmat)  # 旋转矩阵正交化防止矩阵蠕变
         self.compliant_xmat = U @ VT
-        # 四元数微分与角速度关系，转置为了迎合行向量的四元数
-        w_local = np.linalg.inv(self.compliant_xmat) @ self.compliant_xvel[3:]
-        W = np.array([[0., w_local[2], -w_local[1], w_local[0]],
-                      [-w_local[2], 0., w_local[0], w_local[1]],
-                      [w_local[1], -w_local[0], 0., w_local[2]],
-                      [-w_local[0], -w_local[1], -w_local[2], 0.]])
+        # 四元数微分与角速度关系
+        W = np.array([[0., -w[2], w[1], w[0]],
+                      [w[2], 0., -w[0], w[1]],
+                      [-w[1], w[0], 0., w[2]],
+                      [-w[0], -w[1], -w[2], 0.]])
         self.compliant_xquat += W @ self.compliant_xquat * timestep / 2.
         if self.compliant_xquat[3] < 0:
             self.compliant_xquat[3] = -self.compliant_xquat[3]
@@ -482,8 +490,9 @@ if __name__ == "__main__":
     time_w = 4
     time_a = 1
     f = 500
-    pos0, mat0 = np.array([-0.4, -0.15, 0.565]), np.array([0, -1, 0, -1, 0, 0, 0, 0, -1])
-    pos2, mat2 = np.array([-0.4, 0.15, 0.565]), np.array([0, -1, 0, -1, 0, 0, 0, 0, -1])
+    pos0, mat0 = np.array([1, 0, 1]), np.array([1, 0, 0, 0, 1, 0, 0, 0, 1])
+    pos1, mat1 = np.array([0, 1, 1]), np.array([0, -1, 0, -1, 0, 0, 0, 0, -1])
+    pos2, mat2 = np.array([-1, 0, 1]), np.array([0, -1, 0, -1, 0, 0, 0, 0, -1])
 
     # 曲线
     # acc, vel, pos = get_trajectory_para(time_w, time_a, f)
@@ -496,8 +505,8 @@ if __name__ == "__main__":
     # plt.title('curve')
     # plt.show()
 
-    d_acc1, d_vel1, d_pos1 = position_interpolation_line(pos0, pos2, time_w, time_a, f)
-    # d_pos1, d_vel1, d_acc1 = position_interpolation_circle(pos0, pos2, pos1, time_w, time_a, f)
+    # d_acc1, d_vel1, d_pos1 = position_interpolation_line(pos0, pos2, time_w, time_a, f)
+    d_pos1, d_vel1, d_acc1 = position_interpolation_circle(pos0, pos2, pos1, time_w, time_a, f)
     d_mat2, d_quat2, d_vel2, d_acc2 = orientation_interpolation(mat0, mat2, time_w, time_a, f)
 
     i = 1

@@ -18,7 +18,7 @@ from envs.controller import orientation_error_quat_with_mat
 import matplotlib.pyplot as plt
 import numpy as np
 
-test_times = 2
+test_times = 1
 plot_flag = True
 
 for i in range(test_times):

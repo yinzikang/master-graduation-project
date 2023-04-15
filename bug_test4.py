@@ -20,11 +20,11 @@ from gym_custom.envs.env_kwargs import env_kwargs
 env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
 test_name = 'cabinet surface with plan'
 path1 = "model"
-path2 = "train_results/cabinet surface with plan/PPO/04-10-22-22/model"
+path2 = "train_results/cabinet surface with plan/PPO/04-10-00-24/best_model"
 
 _, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
-env = make_vec_env(env_name, n_envs=4,env_kwargs=rl_kwargs)
-# env = gym.make(env_name)
+# env = make_vec_env(env_name, n_envs=4,env_kwargs=rl_kwargs)
+env = gym.make(env_name,**rl_kwargs)
 
 # model = PPO("MlpPolicy", env, verbose=1)
 # mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
@@ -34,3 +34,4 @@ env = make_vec_env(env_name, n_envs=4,env_kwargs=rl_kwargs)
 model = PPO.load(path2)
 mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=10)
 print(mean_reward)
+

@@ -30,7 +30,7 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = gym.make(env_name, **rl_kwargs)
 
-total_timesteps = episode_length * env_num * 2 ** 10  # 11: 655_360, 12: 1310720, 13: 2621440
+total_timesteps = episode_length * env_num * 2 ** 13  # 11: 655_360, 12: 1310720, 13: 2621440
 policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[dict(pi=[128, 128], vf=[128, 128])])
 replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
 checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / env_num),

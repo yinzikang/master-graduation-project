@@ -12,19 +12,20 @@ Write typical usage example here
 """
 import numpy as np
 
-from utils.mujoco_viewer.mujoco_viewer import MujocoViewer
+from gym_custom.utils.mujoco_viewer.mujoco_viewer import MujocoViewer
 from sb3_contrib import QRDQN
 import mujoco
-from module.jk5_env_v5 import Jk5StickRobot
-from module.controller import *
-from module.transformations import quaternion_from_matrix, random_rotation_matrix, quaternion_from_matrix
+from gym_custom.envs.jk5_env_v5 import Jk5StickRobot
+from gym_custom.envs.controller import *
+from gym_custom.envs.transformations import quaternion_from_matrix, random_rotation_matrix, quaternion_from_matrix, \
+    quaternion_multiply
 import matplotlib.pyplot as plt
 
 # policy_kwargs = dict(n_quantiles=50)
 # model = QRDQN("MlpPolicy", "CartPole-v1", policy_kwargs=policy_kwargs, verbose=1)
 # model.learn(total_timesteps=10000, log_interval=4)
 # model.save("qrdqn_cartpole")
-
+# 姿态误差测试
 # for _ in range(10):
 #     mat1 = random_rotation_matrix()
 #     mat2 = random_rotation_matrix()
@@ -63,8 +64,6 @@ import matplotlib.pyplot as plt
 #         quat_from_quat = - quat_from_quat
 #     quat_from_quat[3] = 0
 #     o_q_q = quaternion_multiply(quaternion_multiply(quat2, quat_from_quat), quaternion_inverse(quat2))
-#     if o_q_q[3] < 0:
-#         o_q_q = - o_q_q
 #     o_q_q = o_q_q[:3]
 #     # print(quat_from_mat)
 #     # print(quat_from_quat)
@@ -85,7 +84,8 @@ import matplotlib.pyplot as plt
 # print(quat_i1)
 # print(quat_i2)
 
-compliant_xvel_w = np.array([0, 0, 0, 0, 0, 1], dtype=np.float64)
+# 积分测试
+compliant_xvel_w = np.array([0, 0, 0, 0, 0, 5], dtype=np.float64)
 timestep = 0.01
 desired_xmat = np.array([[0, -1, 0],
                          [-1, 0, 0],
@@ -104,8 +104,6 @@ W = np.array([[0., -compliant_xvel_w[5], compliant_xvel_w[4]],
 compliant_xmat_1 = compliant_xmat + W @ compliant_xmat * timestep
 U, S, VT = np.linalg.svd(compliant_xmat_1)  # 旋转矩阵正交化防止矩阵蠕变
 compliant_xmat_1 = U @ VT
-print(W @ compliant_xmat)
-print('______')
 
 compliant_xvel_l = np.linalg.inv(compliant_xmat) @ compliant_xvel_w[3:]
 W = np.array([[0., compliant_xvel_l[2], -compliant_xvel_l[1], compliant_xvel_l[0]],
@@ -113,38 +111,26 @@ W = np.array([[0., compliant_xvel_l[2], -compliant_xvel_l[1], compliant_xvel_l[0
               [compliant_xvel_l[1], -compliant_xvel_l[0], 0., compliant_xvel_l[2]],
               [-compliant_xvel_l[0], -compliant_xvel_l[1], -compliant_xvel_l[2], 0.]])
 compliant_xquat_1 = compliant_xquat + W @ compliant_xquat * timestep / 2.
-
 if compliant_xquat[3] < 0:
     compliant_xquat[3] = -compliant_xquat[3]
 compliant_xquat = compliant_xquat / np.linalg.norm(compliant_xquat)  # 四元数单位化防止矩阵蠕变
-print(W @ compliant_xquat / 2.)
-wx, wy, wz = compliant_xvel_l[:]
-quat_last = compliant_xquat[[0, 1, 2, 3]]
-quat_first = compliant_xquat[[3, 0, 1, 2]]
-W = np.array([[0., wz, -wy, wx],
-              [-wz, 0., wx, wy],
-              [wy, -wx, 0., wz],
-              [-wx, -wy, -wz, 0.]])
-compliant_xquat_dot1 = W @ quat_last / 2.
-W = np.array([[0., -wx, -wy, wz],
-              [wx, 0., wz, -wy],
-              [wy, -wz, 0., wx],
-              [wz, wy, -wx, 0.]])
-compliant_xquat_dot2 = W @ quat_first / 2.
-compliant_xquat_dot2 = compliant_xquat_dot2[[1, 2, 3, 0]]
+w = np.concatenate((compliant_xvel_w[3:], np.array([0])), axis=0)
+compliant_xquat_2 = compliant_xquat + quaternion_multiply(w, compliant_xquat) * timestep / 2.
 
-print(compliant_xquat_dot1)
-print(compliant_xquat_dot2)
+#
+# print(compliant_xquat_dot1)
+# print(compliant_xquat_dot2)
 print('______')
-
 
 print(mat33_to_quat(compliant_xmat_1))
 print(compliant_xquat_1)
+print(compliant_xquat_2)
 print('-----------')
 print(compliant_xmat_1)
 print(quaternion_matrix(compliant_xquat_1)[:3, :3])
-print('-----------')
-print(orientation_error_quat_with_mat(desired_xmat, compliant_xmat_1))
-print(orientation_error_quat_with_quat(desired_xquat, compliant_xquat_1))
-print(orientation_error_quat_with_mat(desired_xmat, compliant_xmat_1) -
-      orientation_error_quat_with_quat(desired_xquat, compliant_xquat_1))
+print(quaternion_matrix(compliant_xquat_2)[:3, :3])
+# print('-----------')
+# print(orientation_error_quat_with_mat(desired_xmat, compliant_xmat_1))
+# print(orientation_error_quat_with_quat(desired_xquat, compliant_xquat_1))
+# print(orientation_error_quat_with_mat(desired_xmat, compliant_xmat_1) -
+#       orientation_error_quat_with_quat(desired_xquat, compliant_xquat_1))
