@@ -28,9 +28,9 @@ rl_name = 'PPO'
 time_name = '04-11-11-50'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 2621440
-mode = 1
+mode = 3
 save_fig = True
-plot_fig = False
+plot_fig = True
 render = False
 
 if mode == 1:  # 评估中间模型
