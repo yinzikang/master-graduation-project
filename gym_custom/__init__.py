@@ -1,4 +1,5 @@
 from gym.envs.registration import register
+
 register(
     id='TrainEnvVariableStiffness-v6',
     entry_point='gym_custom.envs:TrainEnvVariableStiffnessV6',
@@ -8,10 +9,34 @@ register(
     entry_point='gym_custom.envs:TrainEnvVariableStiffnessAndPostureV6',
 )
 register(
+    id='VS-v6',
+    entry_point='gym_custom.envs:VSV6',
+)
+register(
+    id='VSAP-v6',
+    entry_point='gym_custom.envs:VSAPV6',
+)
+register(
     id='TrainEnvVariableStiffness-v7',
     entry_point='gym_custom.envs:TrainEnvVariableStiffnessV7',
 )
 register(
     id='TrainEnvVariableStiffnessAndPosture-v7',
     entry_point='gym_custom.envs:TrainEnvVariableStiffnessAndPostureV7',
+)
+register(
+    id='TrainEnvVariableStiffnessAndPostureAndSM-v7',
+    entry_point='gym_custom.envs:TrainEnvVariableStiffnessAndPostureAndSMV7',
+)
+register(
+    id='VS-v7',
+    entry_point='gym_custom.envs:VSV7',
+)
+register(
+    id='VSAP-v7',
+    entry_point='gym_custom.envs:VSAPV7',
+)
+register(
+    id='VSAPASM-v7',
+    entry_point='gym_custom.envs:VSAPASMV7',
 )

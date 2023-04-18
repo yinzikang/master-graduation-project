@@ -12,18 +12,20 @@ Write typical usage example here
 """
 
 # from gym_custom.envs.jk5_env_v5 import Jk5StickRobotWithController
-from gym_custom.envs.jk5_env_v6 import Jk5StickRobotWithController
+# from gym_custom.envs.jk5_env_v6 import Jk5StickRobotWithController
+from gym_custom.envs.jk5_env_v7 import Jk5StickRobotWithController
 from gym_custom.envs.env_kwargs import env_kwargs
 from envs.controller import orientation_error_quat_with_mat
 import matplotlib.pyplot as plt
 import numpy as np
 
+task = 'test'
 test_times = 1
 plot_flag = True
 
 for i in range(test_times):
     buffer = dict()
-    rbt_kwargs, rbt_controller_kwargs, rl_kwargs = env_kwargs('cabinet surface with plan')
+    rbt_kwargs, rbt_controller_kwargs, rl_kwargs = env_kwargs(task)
     env = Jk5StickRobotWithController(**rbt_controller_kwargs)
     env.reset()
     env.forward_kinematics(env.qpos_init_list)
@@ -115,19 +117,31 @@ for i in range(test_times):
         plt.title(fig_title + 'qvel')
         plt.grid()
 
-        # i += 1
-        # plt.figure(i)
-        # plt.plot((np.array(xpos_buffer) - np.array(desired_xpos_buffer))[1:, :] /
-        #          np.array(contact_force_buffer)[1:, :3])
-        # plt.legend(['x', 'y', 'z'])
-        # plt.title(fig_title + '1/stiffness')
-        # plt.grid()
+        delta_pos = np.array(buffer["xpos"]) - np.array(buffer["desired_xpos"])
+        f = np.array(buffer["contact_force"])[:,:3]
+        stiffness = np.zeros_like(delta_pos)
+        for j in range(len(stiffness)):
+            if not np.any(delta_pos[j,:] == 0):
+                stiffness[j] = f[j,:] / delta_pos[j, :]
+        i += 1
+        plt.figure(i)
+        plt.plot(stiffness[3:,:])
+        plt.legend(['x', 'y', 'z'])
+        plt.title(fig_title + '1/stiffness')
+        plt.grid()
 
         i += 1
         plt.figure(i)
         plt.plot(buffer["contact_force"])
         plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
         plt.title(fig_title + 'contact_force')
+        plt.grid()
+
+        i += 1
+        plt.figure(i)
+        plt.plot(buffer["contact_force_l"])
+        plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        plt.title(fig_title + 'contact_force_l')
         plt.grid()
 
         i += 1

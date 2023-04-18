@@ -22,6 +22,7 @@ from gym_custom.utils.custom_logx import EpisodeLogger
 from gym_custom.utils.custom_viewer import EnvViewer
 from gym_custom.envs.controller import mat33_to_quat, to_kdl_qpos, to_numpy_qpos, to_kdl_frame, to_numpy_frame
 from gym_custom.envs.transformations import quaternion_about_axis, rotation_matrix, quaternion_multiply
+from gym_custom.envs.env_kwargs import env_kwargs
 from spinup.utils.mpi_tools import proc_id
 
 
@@ -661,3 +662,13 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                 self.logger.dump_buffer()
 
         return self.get_observation(), reward, done, other_info
+
+
+class VS(TrainEnvVariableStiffness):
+    def __init__(self, task_name):
+        super().__init__(**env_kwargs(task_name)[-1])
+
+
+class VSAP(TrainEnvVariableStiffnessAndPosture):
+    def __init__(self, task_name):
+        super().__init__(**env_kwargs(task_name)[-1])

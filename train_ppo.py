@@ -19,8 +19,8 @@ from stable_baselines3.common.env_util import make_vec_env
 import gym
 from gym_custom.envs.env_kwargs import env_kwargs
 
-env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
-test_name = 'cabinet surface with plan'
+env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v7'
+test_name = 'cabinet surface with plan v7'
 rl_name = 'PPO'
 time_name = time.strftime("%m-%d-%H-%M")
 path_name = 'train_results/' + test_name + '/' + rl_name + '/' + time_name + '/'
@@ -30,7 +30,7 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = gym.make(env_name, **rl_kwargs)
 
-total_timesteps = episode_length * env_num * 2 ** 13  # 11: 655_360, 12: 1310720, 13: 2621440
+total_timesteps = episode_length * env_num * 2 ** 9  # 11: 655_360, 12: 1310720, 13: 2621440
 policy_kwargs = dict(activation_fn=th.nn.ReLU, net_arch=[dict(pi=[128, 128], vf=[128, 128])])
 replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
 checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / env_num),

@@ -22,16 +22,16 @@ import numpy as np
 
 # 任务参数
 # 环境加载
-env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
-test_name = 'cabinet surface with plan'
+env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v7'
+test_name = 'cabinet surface with plan v7'
 rl_name = 'PPO'
-time_name = '04-11-11-50'
+time_name = '04-18-12-48'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 2621440
-mode = 3
-save_fig = True
+mode = 2
+save_fig = False
 plot_fig = True
-render = False
+render = True
 
 if mode == 1:  # 评估中间模型
     logger_path = "eval_results/" + path_name + "model_" + str(itr)
