@@ -531,7 +531,7 @@ class TrainEnvVariableStiffness(TrainEnvBase):
             super().step()
             # 可视化
             if hasattr(self, 'viewer'):
-                self.viewer.render()
+                self.render()
             if hasattr(self, 'logger'):
                 self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
                                          xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
@@ -626,7 +626,7 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
 
             # 可视化
             if hasattr(self, 'viewer'):
-                self.viewer.render()
+                self.render()
             if hasattr(self, 'logger'):
                 self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
                                          xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),

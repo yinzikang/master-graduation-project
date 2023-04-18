@@ -23,7 +23,7 @@ task = 'cabinet surface with plan v7'
 _, _, rl_kwargs = env_kwargs(task)
 # env = TrainEnv(**rl_kwargs)
 # env = gym.make('TrainEnvVariableStiffness-v6', **rl_kwargs)
-env = gym.make('TrainEnvVariableStiffnessAndPostureAndSM-v7', **rl_kwargs)
+env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **rl_kwargs)
 # env = gym.make('TrainEnvVariableStiffnessAndPosture-v7', **dict(task_name=task))
 
 if not check_env(env):

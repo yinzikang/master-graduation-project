@@ -9,7 +9,7 @@
     </asset>
     <worldbody>
 <!--        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 0 0 1">-->
-        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 0.02617694830787315 0 0.9996573249755573">
+        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 -0.02617694830787315 0 0.9996573249755573">
             <!--按压任务-->
             <body name="top board" pos="0 0 0.565">
                 <geom size=".2 .2 .01" pos="0 0 0" type="box" rgba="0 0 0 1"
