@@ -19,7 +19,7 @@ from envs.controller import orientation_error_quat_with_mat
 import matplotlib.pyplot as plt
 import numpy as np
 
-task = 'test'
+task = 'desk with plan'
 test_times = 1
 plot_flag = True
 
@@ -33,7 +33,7 @@ for i in range(test_times):
         buffer[status_name] = [env.status[status_name]]
     for _ in range(rbt_controller_kwargs['step_num']):
         env.step()
-        # env.render(pause_start=True)
+        env.render(pause_start=True)
         # print(env.status["qpos"]*180/np.pi)
         for status_name in env.status_list:
             buffer[status_name].append(env.status[status_name])
@@ -70,8 +70,8 @@ for i in range(test_times):
 
         i += 1
         plt.figure(i)
-        plt.plot(np.diff(buffer["xvel"][:, :2], axis=0))
-        plt.plot(np.diff(buffer["desired_xvel"][:, :2], axis=0))
+        plt.plot(np.diff(buffer["xvel"][:, :3], axis=0))
+        plt.plot(np.diff(buffer["desired_xvel"][:, :3], axis=0))
         # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
         plt.legend(['x', 'y', 'dx', 'dy'])
         plt.title(fig_title + 'xpos_acc')
@@ -121,8 +121,8 @@ for i in range(test_times):
         f = np.array(buffer["contact_force"])[:,:3]
         stiffness = np.zeros_like(delta_pos)
         for j in range(len(stiffness)):
-            if not np.any(delta_pos[j,:] == 0):
-                stiffness[j] = f[j,:] / delta_pos[j, :]
+            if not np.any(f[j,:] == 0):
+                stiffness[j] = delta_pos[j, :] / f[j,:]
         i += 1
         plt.figure(i)
         plt.plot(stiffness[3:,:])

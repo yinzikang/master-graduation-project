@@ -244,15 +244,30 @@ def orientation_interpolation(init_xmat, end_xmat, time_whole, time_acceleration
             mat_buffer[i, :] = quat_to_mat_33(quat[i, :]).reshape(-1)
             w = quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :]))
             vel_buffer[i, :] = (2 * w)[:3]
-            acc_buffer[i, :] = 2 * (quaternion_multiply(quat_dd[i, :], quaternion_conjugate(quat[i, :])) +
-                                    quaternion_multiply(
-                                        quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :])),
-                                        quaternion_multiply(quat_d[i, :], quaternion_conjugate(quat[i, :]))))[:3]
-            # acc_buffer1[i, :] = (2 * quaternion_multiply(quat_dd[i, :], quaternion_conjugate(quat[i, :])) -
-            #                     0.5 * quaternion_multiply(w, w))[:3]
-            # print(acc_buffer[i, :]-acc_buffer1[i, :])
+            acc_buffer[i, :] = (2 * quaternion_multiply(quat_dd[i, :], quaternion_conjugate(quat[i, :])) -
+                                0.5 * quaternion_multiply(w, w))[:3]
 
     return mat_buffer, quat, vel_buffer, acc_buffer
+
+
+def joint_interpolation(init_qpos, end_qpos, time_whole, time_acceleration, control_frequency):
+    """
+    返回step_num*3
+    :param init_qpos:
+    :param end_qpos:
+    :param time_whole:
+    :param time_acceleration:
+    :param control_frequency:
+    :return:
+    """
+    step_num = int(time_whole * control_frequency)
+    error = end_qpos - init_qpos  # 直线运动，误差为位置的差距
+    a, v, p = get_trajectory_para(time_whole, time_acceleration, step_num)
+    acc_buffer = a * error
+    vel_buffer = v * error
+    pos_buffer = p * error + init_qpos
+
+    return pos_buffer, vel_buffer, acc_buffer
 
 
 def trajectory_planning_line(init_xpos, init_xmat, end_xpos, end_xmat, time_whole, time_acceleration,
@@ -273,7 +288,7 @@ def trajectory_planning_circle(init_xpos, init_xmat, end_xpos, end_xmat, mid_xpo
                                                        control_frequency)
     xmat, xquat, xvel2, xacc2 = orientation_interpolation(init_xmat, end_xmat, time_whole, time_acceleration,
                                                           control_frequency)
-    xposture = np.concatenate((xpos, xmat), axis=1)
+    xposture = np.concatenate((xpos, xmat, xquat), axis=1)
     xvel = np.concatenate((xvel1, xvel2), axis=1)
     xacc = np.concatenate((xacc1, xacc2), axis=1)
     return xposture, xvel, xacc
@@ -428,8 +443,8 @@ class ImpedanceController_v2:
         K = status['controller_parameter']['K']
         S_M33 = status['controller_parameter']['SM']
         S_M66 = np.zeros((6, 6))
-        S_M66[:3,:3] = S_M33
-        S_M66[3:,3:] = S_M33
+        S_M66[:3, :3] = S_M33
+        S_M66[3:, 3:] = S_M33
 
         M_M = S_M66 @ np.diag(M) @ np.transpose(S_M66)
         B_M = S_M66 @ np.diag(B) @ np.transpose(S_M66)
@@ -443,6 +458,55 @@ class ImpedanceController_v2:
         #                                  orientation_error_quat_with_quat(desired_xquat, xquat)])
         xvel_error = desired_xvel - xvel
 
+        # 阻抗控制率
+        T = B_M @ xvel_error + K_M @ xposture_error + contact_force
+        solved_acc = desired_xacc + np.linalg.inv(M_M) @ T
+        F = D_x @ solved_acc + CG_x - contact_force
+        tau = J.T @ F
+
+        return tau
+
+
+# 用来画图
+class ImpedanceController_v3:
+    def __init__(self, orientation_error=orientation_error_quat_with_mat):
+        self.orientation_error = orientation_error
+
+    def step(self, status):
+        # 状态
+        desired_xpos = status['desired_xpos']
+        desired_xmat = status['desired_xmat']
+        desired_xquat = status['desired_xquat']
+        desired_xvel = status['desired_xvel']
+        desired_xacc = status['desired_xacc']
+        xpos = status['xpos']
+        xmat = status['xmat']
+        xquat = status['xquat']
+        xvel = status['xvel']
+
+        J = status['J']
+        D_x = status['D_x']
+        CG_x = status['CG_x']
+        contact_force = status['contact_force']
+
+        # 控制器参数
+        M = status['controller_parameter']['M']
+        B = status['controller_parameter']['B']
+        K = status['controller_parameter']['K']
+        S_M33 = status['controller_parameter']['SM']
+        S_M66 = np.zeros((6, 6))
+        S_M66[:3, :3] = S_M33
+        S_M66[3:, 3:] = S_M33
+
+        M_M = S_M66 @ np.diag(M) @ np.transpose(S_M66)
+        B_M = S_M66 @ np.diag(B) @ np.transpose(S_M66)
+        K_M = S_M66 @ np.diag(K) @ np.transpose(S_M66)
+
+        xposture_error = np.concatenate([desired_xpos - xpos,
+                                         self.orientation_error(desired_xmat, xmat)])
+
+        xvel_error = desired_xvel - xvel
+        # print(K_M @ xposture_error + contact_force)
         # 阻抗控制率
         T = B_M @ xvel_error + K_M @ xposture_error + contact_force
         solved_acc = desired_xacc + np.linalg.inv(M_M) @ T
@@ -592,6 +656,188 @@ class AdmittanceController_v2:
                                          orientation_error_quat_with_quat(desired_xquat, self.compliant_xquat)])
         xvel_error = desired_xvel - self.compliant_xvel
         T = B_M @ xvel_error + K_M @ xposture_error + contact_force
+        solved_acc = desired_xacc + np.linalg.inv(M_M) @ T  # compliant_xacc
+        self.compliant_xacc = solved_acc
+        self.compliant_xvel += self.compliant_xacc * timestep
+        self.compliant_xpos += self.compliant_xvel[:3] * timestep
+        # 旋转矩阵微分与角速度关系
+        w = self.compliant_xvel[3:]
+        W = np.array([[0., -w[2], w[1]],
+                      [w[2], 0., -w[0]],
+                      [-w[1], w[0], 0.]])
+        self.compliant_xmat += W @ self.compliant_xmat * timestep
+        U, S, VT = np.linalg.svd(self.compliant_xmat)  # 旋转矩阵正交化防止矩阵蠕变
+        self.compliant_xmat = U @ VT
+        # 四元数微分与角速度关系
+        W = np.array([[0., -w[2], w[1], w[0]],
+                      [w[2], 0., -w[0], w[1]],
+                      [-w[1], w[0], 0., w[2]],
+                      [-w[0], -w[1], -w[2], 0.]])
+        self.compliant_xquat += W @ self.compliant_xquat * timestep / 2.
+        # if self.compliant_xquat[3] < 0:
+        #     self.compliant_xquat = -self.compliant_xquat
+        self.compliant_xquat = self.compliant_xquat / np.linalg.norm(self.compliant_xquat)  # 四元数单位化防止矩阵蠕变
+
+        compliant_status = copy.deepcopy(status)
+        compliant_status.update(controller_parameter=self.computed_torque_controller_para,
+                                desired_xpos=self.compliant_xpos,
+                                desired_xmat=self.compliant_xmat,
+                                desired_xquat=self.compliant_xquat,
+                                desired_xvel=self.compliant_xvel,
+                                desired_xacc=self.compliant_xacc)
+
+        tau = self.computed_torque_controller.step(compliant_status)
+
+        return tau
+
+
+# 用于画图
+class AdmittanceController_v3:
+    def __init__(self, orientation_error=orientation_error_quat_with_mat):
+        self.computed_torque_controller = ComputedTorqueController()
+        self.orientation_error = orientation_error
+        # 计算力矩控制器参数
+        wn = 20
+        damping_ratio = np.sqrt(2)
+        kp = wn * wn * np.ones(6, dtype=np.float64)
+        kd = 2 * damping_ratio * np.sqrt(kp)
+        self.computed_torque_controller_para = {'kp': kp, 'kd': kd}
+
+        self.compliant_xpos = None
+        self.compliant_xmat = None
+        self.compliant_xquat = None
+        self.compliant_xvel = None
+        self.compliant_xacc = None
+
+    def step(self, status):
+        # 状态
+        desired_xpos = status['desired_xpos']
+        desired_xmat = status['desired_xmat']
+        desired_xquat = status['desired_xquat']
+        desired_xvel = status['desired_xvel']
+        desired_xacc = status['desired_xacc']
+
+        contact_force = status['contact_force']
+
+        # 控制器参数
+        M = status['controller_parameter']['M']
+        B = status['controller_parameter']['B']
+        K = status['controller_parameter']['K']
+        S_M33 = status['controller_parameter']['SM']
+        S_M66 = np.zeros((6, 6))
+        S_M66[:3, :3] = S_M33
+        S_M66[3:, 3:] = S_M33
+
+        M_M = S_M66 @ np.diag(M) @ np.transpose(S_M66)
+        B_M = S_M66 @ np.diag(B) @ np.transpose(S_M66)
+        K_M = S_M66 @ np.diag(K) @ np.transpose(S_M66)
+        timestep = status['timestep']
+
+        # 初始化
+        if status['current_step'] == 0:
+            self.compliant_xpos = copy.deepcopy(desired_xpos)
+            self.compliant_xmat = copy.deepcopy(desired_xmat)
+            self.compliant_xquat = copy.deepcopy(desired_xquat)
+            self.compliant_xvel = copy.deepcopy(desired_xvel)
+            self.compliant_xacc = copy.deepcopy(desired_xacc)
+        # xposture_error, xvel_error, w_c dot, related to base frame
+        xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
+                                         self.orientation_error(desired_xmat, self.compliant_xmat)])
+        xvel_error = desired_xvel - self.compliant_xvel
+        T = B_M @ xvel_error + K_M @ xposture_error + contact_force
+        solved_acc = desired_xacc + np.linalg.inv(M_M) @ T  # compliant_xacc
+        self.compliant_xacc = solved_acc
+        self.compliant_xvel += self.compliant_xacc * timestep
+        self.compliant_xpos += self.compliant_xvel[:3] * timestep
+        # 旋转矩阵微分与角速度关系
+        w = self.compliant_xvel[3:]
+        W = np.array([[0., -w[2], w[1]],
+                      [w[2], 0., -w[0]],
+                      [-w[1], w[0], 0.]])
+        self.compliant_xmat += W @ self.compliant_xmat * timestep
+        U, S, VT = np.linalg.svd(self.compliant_xmat)  # 旋转矩阵正交化防止矩阵蠕变
+        self.compliant_xmat = U @ VT
+        # 四元数微分与角速度关系
+        W = np.array([[0., -w[2], w[1], w[0]],
+                      [w[2], 0., -w[0], w[1]],
+                      [-w[1], w[0], 0., w[2]],
+                      [-w[0], -w[1], -w[2], 0.]])
+        self.compliant_xquat += W @ self.compliant_xquat * timestep / 2.
+        # if self.compliant_xquat[3] < 0:
+        #     self.compliant_xquat = -self.compliant_xquat
+        self.compliant_xquat = self.compliant_xquat / np.linalg.norm(self.compliant_xquat)  # 四元数单位化防止矩阵蠕变
+
+        compliant_status = copy.deepcopy(status)
+        compliant_status.update(controller_parameter=self.computed_torque_controller_para,
+                                desired_xpos=self.compliant_xpos,
+                                desired_xmat=self.compliant_xmat,
+                                desired_xquat=self.compliant_xquat,
+                                desired_xvel=self.compliant_xvel,
+                                desired_xacc=self.compliant_xacc)
+
+        tau = self.computed_torque_controller.step(compliant_status)
+
+        return tau
+
+
+class AdmittanceController_v4:
+    def __init__(self):
+        self.computed_torque_controller = ComputedTorqueController()
+        # 计算力矩控制器参数
+        wn = 20
+        damping_ratio = np.sqrt(2)
+        kp = wn * wn * np.ones(6, dtype=np.float64)
+        kd = 2 * damping_ratio * np.sqrt(kp)
+        self.computed_torque_controller_para = {'kp': kp, 'kd': kd}
+
+        self.compliant_xpos = None
+        self.compliant_xmat = None
+        self.compliant_xquat = None
+        self.compliant_xvel = None
+        self.compliant_xacc = None
+
+    def step(self, status):
+        # 状态
+        desired_xpos = status['desired_xpos']
+        desired_xmat = status['desired_xmat']
+        desired_xquat = status['desired_xquat']
+        desired_xvel = status['desired_xvel']
+        desired_xacc = status['desired_xacc']
+        desired_force = status['desired_force']
+        contact_force = status['contact_force']
+
+        # 控制器参数
+        M = status['controller_parameter']['M']
+        B = status['controller_parameter']['B']
+        K = status['controller_parameter']['K']
+        S_M33 = status['controller_parameter']['SM']
+        S_M66 = np.zeros((6, 6))
+        S_M66[:3, :3] = S_M33
+        S_M66[3:, 3:] = S_M33
+
+        if np.max(np.abs(contact_force)) < 1e-5:
+            print("free space")
+        else:
+            print("contact space")
+            K[2] = 0
+
+        M_M = S_M66 @ np.diag(M) @ np.transpose(S_M66)
+        B_M = S_M66 @ np.diag(B) @ np.transpose(S_M66)
+        K_M = S_M66 @ np.diag(K) @ np.transpose(S_M66)
+        timestep = status['timestep']
+
+        # 初始化
+        if status['current_step'] == 0:
+            self.compliant_xpos = copy.deepcopy(desired_xpos)
+            self.compliant_xmat = copy.deepcopy(desired_xmat)
+            self.compliant_xquat = copy.deepcopy(desired_xquat)
+            self.compliant_xvel = copy.deepcopy(desired_xvel)
+            self.compliant_xacc = copy.deepcopy(desired_xacc)
+        # xposture_error, xvel_error, w_c dot, related to base frame
+        xposture_error = np.concatenate([desired_xpos - self.compliant_xpos,
+                                         orientation_error_quat_with_quat(desired_xquat, self.compliant_xquat)])
+        xvel_error = desired_xvel - self.compliant_xvel
+        T = B_M @ xvel_error + K_M @ xposture_error + contact_force - desired_force
         solved_acc = desired_xacc + np.linalg.inv(M_M) @ T  # compliant_xacc
         self.compliant_xacc = solved_acc
         self.compliant_xvel += self.compliant_xacc * timestep

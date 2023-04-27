@@ -77,7 +77,7 @@ class Jk5StickRobot:
                                    kdl.Frame(kdl.Rotation.RotX(np.pi / 2), kdl.Vector(0, 0, 0.1015))))
         rbt.addSegment(kdl.Segment("link6", kdl.Joint("joint6", kdl.Joint.RotZ),
                                    kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.094))))
-        if self.task == 'desk':  # 桌任务ee长0.169
+        if 'desk' in self.task:  # 桌任务ee长0.169
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
         elif self.task == 'open door':  # 门任务ee长0.06
@@ -86,13 +86,16 @@ class Jk5StickRobot:
         elif self.task == 'close door':  # 门任务ee长0.06
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.063))))
-        elif self.task == 'cabinet surface with plan':  # 储物柜桌面任务ee长0.169
+        elif 'cabinet surface with plan' in self.task:  # 储物柜桌面任务ee长0.169
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
         elif self.task == 'cabinet drawer open' or self.task == 'cabinet drawer close':  # 执行器中心
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
         elif self.task == 'cabinet door open' or self.task == 'cabinet door close':  # 储物柜门任务ee长0.06
+            rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
+                                       kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
+        elif self.task == 'fig_plot':  # 储物柜桌面任务ee长0.169
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
 
@@ -185,13 +188,15 @@ class Jk5StickRobot:
         J_old = self.status['J']
         J = self.get_jacobian()
         Jd = self.get_jacobian_dot(J_old, J)
+        Inv_JT = np.linalg.inv(J.T)
+        Inv_J = np.linalg.inv(J)
         self.status.update(xpos=xpos, xmat=xmat, xquat=xquat, xvel=xvel, qpos=qpos, qvel=qvel, J_old=J_old, J=J, Jd=Jd)
 
         # 动力学状态：关节空间、笛卡尔空间下的D、C、G
         D_q = self.get_mass_matrix()
-        D_x = np.dot(np.linalg.inv(J.T), np.dot(D_q, np.linalg.inv(J)))
+        D_x = np.dot(Inv_JT, np.dot(D_q, Inv_J))
         CG_q = np.array(self.data.qfrc_bias[:self.joint_num])
-        CG_x = np.dot(np.linalg.inv(J.T), CG_q) - np.dot(np.dot(D_x, Jd), qvel)
+        CG_x = np.dot(Inv_JT, CG_q) - np.dot(np.dot(D_x, Jd), qvel)
         self.status.update(D_q=D_q, D_x=D_x, CG_q=CG_q, CG_x=CG_x)
 
         # contact_force：笛卡尔空间下，相对于基坐标系，机器人受到的力，按压桌子，机器人受到的力朝上，因此contact_force为正
@@ -217,7 +222,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.initial_state = copy.deepcopy(self.data)
         # 控制器
         self.initial_controller_parameter = controller_parameter
-        self.controller_parameter = copy.deepcopy(self.initial_state)
+        self.controller_parameter = copy.deepcopy(self.initial_controller_parameter)
         self.controller = controller()
 
         self.init_desired_xposture_list = desired_xposture_list
@@ -235,6 +240,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
         self.step_num = step_num
         self.current_step = 0
+        self.status_buffer = []
 
     def get_status(self):
         super().get_status()
@@ -248,6 +254,9 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                            tau=np.array(self.data.ctrl[:]),
                            timestep=self.mjc_model.opt.timestep,
                            current_step=self.current_step)
+        self.status_buffer.append(self.status['xpos'].tolist() +
+                                  self.status['xquat'].tolist() +
+                                  self.status['xvel'].tolist())
 
     def reset(self):
         """
@@ -298,15 +307,21 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
         self.status.update(J=self.get_jacobian())
         self.current_step = 0
+        self.status_buffer = []
         self.get_status()
 
     def step(self):
         """
         控制器运行一次
         """
-        # self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][0] = 10
-        # self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][1] = 20
-        # self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][2] = 30
+        # if self.current_step < 2000:
+        #     self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][3] = 3
+        #     self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][4] = 2
+        #     self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][5] = 3
+        # else:
+        #     self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][0] = 0
+        #     self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][1] = 0
+        #     self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][2] = 0
         tau = self.controller.step(self.status)
         # 执行
         self.data.ctrl[:] = tau
@@ -336,7 +351,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                                label=" ",  # Text beside the marker
                                type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
                                size=(k[0], k[1], k[2]),  # Size of the marker
-                               rgba=(0.5, 0.5, 0.5, 0.75),
+                               rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
                                emission=1)  # RGBA of the marker
 
 
@@ -374,76 +389,69 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
         self.rl_frequency = rl_frequency
         self.sub_step_num = int(self.control_frequency / self.rl_frequency)  # 两个动作之间的机器人控制次数
         self.observation_range = observation_range  # 前observation_range个状态组成观测
-        # buffer：用于计算observation
-        self.observation_buffer = []
         # o, a, r，根据gym要求，设置为类变量，而不是实例变量
         self.observation_num = 3 + 4 + 6  # 观测数：3个位置+4个姿态+6个速度
-        self.observation_space = spaces.Box(low=-np.inf * np.ones(self.observation_num),
-                                            high=np.inf * np.ones(self.observation_num),
+        self.observation_space = spaces.Box(low=-np.inf * np.ones((self.observation_range, self.observation_num)),
+                                            high=np.inf * np.ones((self.observation_range, self.observation_num)),
+                                            shape=(self.observation_range, self.observation_num),
                                             dtype=np.float32)  # 连续观测空间
         self.current_episode = -1
 
     def get_observation(self):
-        xpos = self.status['xpos']
-        xquat = self.status['xquat']
-        xvel = self.status['xvel']
-
+        # 够长则取最近的observation_range个，不够对最远那个进行复制，observation_range×(3+4+2)
+        if len(self.status_buffer) >= self.observation_range:
+            observation = np.array(self.status_buffer[-self.observation_range:], dtype=np.float32)
+        else:
+            observation = np.array(self.status_buffer +
+                                   [self.status_buffer[0]] * (self.observation_range - self.current_step - 1),
+                                   dtype=np.float32)
         xpos_min = self.min_desired_xposture[:3]
         xpos_max = self.max_desired_xposture[:3]
         xvel_min = self.min_desired_xvel
         xvel_max = self.max_desired_xvel
-        xpos_normalized = (2 * xpos - xpos_min - xpos_max) / (xpos_max - xpos_min)
-        xvel_normalized = (2 * xvel - xvel_min - xvel_max) / (xvel_max - xvel_min)
-
-        status = np.concatenate((xpos_normalized, xquat, xvel_normalized), dtype=np.float32)
-        self.observation_buffer.append(status)  # status与observation关系
-        # 够长则取最近的observation_range个，不够对最远那个进行复制，observation_range×(3+4+2)
-        if len(self.observation_buffer) >= self.observation_range:
-            observation = np.array(self.observation_buffer[-self.observation_range:]).flatten()
-        else:
-            observation = np.array(self.observation_buffer +
-                                   self.observation_buffer[0] * (
-                                           self.current_step - self.observation_range)).flatten()
+        observation[:, :3] = (2 * observation[:, :3] - xpos_min - xpos_max) / (xpos_max - xpos_min)
+        observation[:, 7:13] = (2 * observation[:, 7:13] - xvel_min - xvel_max) / (xvel_max - xvel_min)
         if hasattr(self, 'logger'):
             self.logger.store_buffer(observation=observation)
 
         return observation
 
     def get_reward(self, done, success, failure):
-        # 奖励范围： - 1.5
-        xpos_error = self.status['desired_xpos'] - self.status['xpos']
-        contact_force = self.status['contact_force']
-        contact_force_l = self.status['contact_force_l']
-        tau = self.status['tau']
+        if 'cabinet surface with plan' in self.task:
+            # 奖励范围： - 1.5
+            xpos_error = self.status['desired_xpos'] - self.status['xpos']
+            contact_force = self.status['contact_force']
+            table = np.array([[0.9986295, 0, -0.0523360],
+                              [0, 1, 0],
+                              [0.0523360, 0, 0.9986295]])
+            contact_force_table = (table.transpose() @ contact_force.reshape((3, 2), order="F")).reshape(-1, order="F")
+            tau = self.status['tau']
 
-        ## 运动状态的奖励
-        movement_reward = np.sum(xpos_error[[0, 1]] ** 2)
-        # fext_reward = - np.sum(
-        #     np.linalg.norm(contact_force[2] - self.desired_force_list[self.current_step, 2], ord=1))
-        # fext_reward = - abs(contact_force[2] - self.desired_force_list[self.current_step, 2])
-        fext_reward = - np.sum(abs(contact_force_l[2] - self.desired_force_list[self.current_step, 2]))
-        # 要是力距离期望力较近则进行额外奖励
-        fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
-        tau_reward = - np.sqrt(np.sum(tau ** 2))
-        ## 任务结束的奖励与惩罚
-        early_stop_penalty = (self.step_num - self.current_step) / self.step_num if done else 0
-        error_k_penalty = -1 if failure else 0
-        ## 接触力的奖励与惩罚
-        zero_force_penalty = -1 if np.max(np.abs(contact_force)) < 1 else 0
-        massive_force_penalty = -1 if np.max(np.abs(contact_force)) > 50 else 0
+            ## 运动状态的奖励
+            movement_reward = - abs(table.transpose() @ xpos_error)[0]
+            fext_reward = - np.sum(abs(contact_force_table - self.desired_force_list[self.current_step, :]))
+            # 要是力距离期望力较近则进行额外奖励
+            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+            tau_reward = - np.sqrt(np.sum(tau ** 2))
+            ## 任务结束的奖励与惩罚
+            completion_ratio_penalty = (table.transpose() @ xpos_error)[0] if done else 0
+            early_stop_penalty = (self.step_num - self.current_step) / self.step_num if done else 0
+            error_k_penalty = -1 if failure else 0
+            ## 接触力的奖励与惩罚
+            zero_force_penalty = -1 if np.max(np.abs(contact_force)) < 1 else 0
+            massive_force_penalty = -1 if np.max(np.abs(contact_force)) > 50 else 0
 
-        # reward = 0 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
-        #           1 * error_k_penalty + 1 * early_stop_penalty + \
-        #           0.5 * zero_force_penalty + 0 * massive_force_penalty
-        reward = 0 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
-                 0 * error_k_penalty + 0 * early_stop_penalty + \
-                 0 * zero_force_penalty + 0 * massive_force_penalty + 1.
-        return reward
+            # reward = 0 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
+            #           1 * error_k_penalty + 1 * early_stop_penalty + \
+            #           0.5 * zero_force_penalty + 0 * massive_force_penalty
+            reward = 50 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
+                     0 * error_k_penalty + 0 * early_stop_penalty + \
+                     0 * zero_force_penalty + 0 * massive_force_penalty + 1.
+            return reward
 
     def reset(self):
         super().reset()
         self.current_episode += 1
-        self.observation_buffer = []
 
         return self.get_observation()
 
@@ -560,13 +568,13 @@ class TrainEnvVariableStiffness(TrainEnvBase):
                 error_K = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
-                print(self.controller_parameter['K'])
+                # print(self.controller_parameter['K'])
             # 接触力约束
             if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
-                print(self.status['contact_force'])
+                # print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
 
@@ -656,13 +664,13 @@ class TrainEnvVariableStiffnessAndPosture(TrainEnvBase):
                 error_K = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
-                print(self.controller_parameter['K'])
+                # print(self.controller_parameter['K'])
             # 接触力约束：超过范围，视为done
             if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
-                print(self.status['contact_force'])
+                # print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
             self.status.update(done=done, success=success, failure=failure)
@@ -692,9 +700,9 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
         self.action_limit = np.array([100, 100, 100, 10, 10, 10,
                                       0.01, 0.01, 0.01,  # 位置变化限制
                                       1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
-                                      0.1,
+                                      0.0,
                                       1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
-                                      0.1], dtype=np.float32)  # 姿态的角度变化限制
+                                      0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
     def step(self, action):
         """
@@ -709,22 +717,24 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
         # 对多次执行机器人控制
         sub_step = 0
         action = self.action_limit * action
+        delta_K = action[:6] / self.sub_step_num
+        traj_pos, traj_direction, traj_angle = action[6:9], action[9:12] / np.linalg.norm(action[9:12]), action[12]
+        traj_mat = rotation_matrix(traj_angle, traj_direction)[:3, :3]
+        traj_quat = quaternion_about_axis(traj_angle, traj_direction)
+        ellipsoid_direction, ellipsoid_angle = action[13:16] / np.linalg.norm(action[13:16]), action[16]
+        # 刚度椭圆姿态变化量，进行旋转，相对于世界坐标系（每一次更新间恒定）
+        self.controller_parameter['SM'] = rotation_matrix(ellipsoid_angle, ellipsoid_direction)[:3, :3] @ \
+                                          self.controller_parameter['SM']
         for sub_step in range(self.sub_step_num):
-            # 刚度椭圆轴变化量，进行插值
-            self.controller_parameter['K'] += action[:6] / self.sub_step_num  # 只有z方向
+            # 刚度椭圆轴变化量，进行插值（每一次更新间不同）
+            self.controller_parameter['K'] += delta_K
             M = self.controller_parameter['K'] / (self.wn * self.wn)
             self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
             self.controller_parameter['M'] = M
-            # 位姿变化量，直接叠加
-            traj_pos, traj_direction, traj_angle = action[6:9], action[9:12] / np.linalg.norm(action[9:12]), action[12]
-            mat = rotation_matrix(traj_angle, traj_direction)[:3, :3]
-            quat = quaternion_about_axis(traj_angle, traj_direction)
+            # 位姿变化量，进行叠加（每一次更新间不同）
             self.status['desired_xpos'] += traj_pos
-            self.status['desired_xmat'] = mat @ self.status['desired_xmat']
-            self.status['desired_xquat'] = quaternion_multiply(quat, self.status['desired_xquat'])
-            # 刚度椭圆姿态变化量，直接叠加
-            ellipsoid_direction, ellipsoid_angle = action[13:16] / np.linalg.norm(action[13:16]), action[16]
-            self.controller_parameter['SM'] = rotation_matrix(ellipsoid_angle, ellipsoid_direction)[:3, :3]
+            self.status['desired_xmat'] = traj_mat @ self.status['desired_xmat']
+            self.status['desired_xquat'] = quaternion_multiply(traj_quat, self.status['desired_xquat'])
 
             # 可视化
             if hasattr(self, 'viewer'):
@@ -759,13 +769,13 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
                 error_K = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error K'
-                print(self.controller_parameter['K'])
+                # print(self.controller_parameter['K'])
             # 接触力约束：超过范围，视为done
             if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
                 error_force = True
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
-                print(self.status['contact_force'])
+                # print(self.status['contact_force'])
             failure = error_K or error_force
             done = success or failure
             self.status.update(done=done, success=success, failure=failure)

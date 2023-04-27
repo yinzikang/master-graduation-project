@@ -1,4 +1,4 @@
-<!--jk5+cabinet环境，用于表面接触任务，桌子比较低，比较近-->
+<!--修改自jk5_cabinet_surface，但是倾斜了-->
 <mujoco model="jk5_cabinet">
     <include file="basic_env.xml"/>
     <include file="robot_stick.xml"/>
@@ -8,7 +8,8 @@
         <material name="MatLightWood" texrepeat="3 3" specular="0.4" shininess="0.1"/>
     </asset>
     <worldbody>
-        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 0 0 1">
+        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 -0.02617694830787315 0 0.9996573249755573">
+<!--        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 0 0 1">-->
             <!--按压任务-->
             <body name="top board" pos="0 0 0.565">
                 <geom size=".2 .2 .01" pos="0 0 0" type="box" rgba="0 0 0 1"

@@ -1,0 +1,5 @@
+<!--为了画图，所以机器人基坐标系与世界坐标系重合-->
+<mujoco model="jk5_fig_plot">
+    <include file="basic_env.xml"/>
+    <include file="robot_stick_lower.xml"/>
+</mujoco>

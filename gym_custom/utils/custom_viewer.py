@@ -17,7 +17,7 @@ import mujoco as mp
 class EnvViewer(MujocoViewer):
     def __init__(self, env, pause_start = False, view_force=True):
         super().__init__(env.mjc_model, env.data, hide_menus=False)
-        self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTPOINT] = view_force
+        # self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTPOINT] = view_force
         self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTFORCE] = view_force
         self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTSPLIT] = view_force
         self._paused = pause_start

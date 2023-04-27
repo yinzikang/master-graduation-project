@@ -25,11 +25,11 @@ import numpy as np
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v7'
 test_name = 'cabinet surface with plan v7'
 rl_name = 'PPO'
-time_name = '04-18-12-48'
+time_name = '04-22-00-11'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 2621440
-mode = 2
-save_fig = False
+mode = 3
+save_fig = True
 plot_fig = True
 render = True
 
@@ -59,7 +59,10 @@ result_dict = load_episode(logger_path)
 for idx, (name, series) in enumerate(result_dict.items()):
     num = series.shape[-1]
     plt.figure(idx + 1)
-    plt.plot(series)
+    if name == 'observation':
+        plt.plot(series[:,-1,:])
+    else:
+        plt.plot(series)
     plt.grid()
     plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
     plt.title(name)
