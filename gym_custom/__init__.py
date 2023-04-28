@@ -40,3 +40,27 @@ register(
     id='VSAPASM-v7',
     entry_point='gym_custom.envs:VSAPASMV7',
 )
+register(
+    id='TrainEnvVariableStiffness-v8',
+    entry_point='gym_custom.envs:TrainEnvVariableStiffnessV8',
+)
+register(
+    id='TrainEnvVariableStiffnessAndPosture-v8',
+    entry_point='gym_custom.envs:TrainEnvVariableStiffnessAndPostureV8',
+)
+register(
+    id='TrainEnvVariableStiffnessAndPostureAndSM-v8',
+    entry_point='gym_custom.envs:TrainEnvVariableStiffnessAndPostureAndSMV8',
+)
+register(
+    id='VS-v8',
+    entry_point='gym_custom.envs:VSV8',
+)
+register(
+    id='VSAP-v8',
+    entry_point='gym_custom.envs:VSAPV8',
+)
+register(
+    id='VSAPASM-v8',
+    entry_point='gym_custom.envs:VSAPASMV8',
+)

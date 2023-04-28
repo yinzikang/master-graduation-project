@@ -16,18 +16,20 @@ import gym
 import gym_custom
 from gym_custom.envs.env_kwargs import env_kwargs
 from gym_custom.utils.custom_loader import load_episode
+from eval_everything import eval_everything
 import matplotlib.pyplot as plt
 import numpy as np
 
 # 任务参数
 # 环境加载
-env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
-test_name = 'cabinet surface with plan'
+env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v7'
+test_name = 'cabinet surface with plan v7'
 rl_name = 'SAC'
-time_name = '04-05-11-30'
+time_name = '04-28-00-09'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 400
 mode = 3
+plot_flag = True
 
 if mode == 1:  # 评估中间模型
     logger_path = "eval_results/" + path_name + "model_" + str(itr)
@@ -51,12 +53,28 @@ mean_reward, std_reward = evaluate_policy(model=model, env=env, n_eval_episodes=
 print(mean_reward, std_reward)
 result_dict = load_episode(logger_path)
 # plot
-for idx, (name, series) in enumerate(result_dict.items()):
-    num = series.shape[-1]
-    plt.figure(idx + 1)
-    plt.plot(series)
-    plt.grid()
-    plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
-    plt.title(name)
-    plt.savefig(logger_path + '/' + name)
-plt.show()
+# for idx, (name, series) in enumerate(result_dict.items()):
+#     num = series.shape[-1]
+#     if len(series.shape) == 1:
+#         plt.figure(idx)
+#         plt.plot(series)
+#         plt.grid()
+#         plt.title(name)
+#         plt.savefig(logger_path + '/' + name)
+#     elif len(series.shape) == 3:
+#         plt.figure(idx)
+#         plt.plot(series[:, -1, :])
+#         plt.grid()
+#         plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
+#         plt.title(name)
+#         plt.savefig(logger_path + '/' + name)
+#     else:
+#         plt.figure(idx)
+#         plt.plot(series)
+#         plt.grid()
+#         plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
+#         plt.title(name)
+#         plt.savefig(logger_path + '/' + name)
+#
+# plt.show()
+eval_everything(env,result_dict,True,False)

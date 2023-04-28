@@ -17,6 +17,7 @@ import gym_custom
 from gym_custom.envs.env_kwargs import env_kwargs
 from gym_custom.utils.custom_loader import load_episode
 from stable_baselines3.common.env_util import make_vec_env
+from eval_everything import eval_everything
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -25,13 +26,16 @@ import numpy as np
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v7'
 test_name = 'cabinet surface with plan v7'
 rl_name = 'PPO'
-time_name = '04-22-00-11'
+time_name = '04-28-17-12'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
-itr = 2621440
-mode = 3
+itr = 655360
+mode = 2
+
+eval_flag = True
 save_fig = True
 plot_fig = True
-render = True
+render = False
+n_eval_episodes = 1
 
 if mode == 1:  # 评估中间模型
     logger_path = "eval_results/" + path_name + "model_" + str(itr)
@@ -45,28 +49,17 @@ elif mode == 3:  # 评估最优模型
 
 _, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
 env = gym.make(env_name, **rl_kwargs)
-env.logger_init(logger_path)
+if eval_flag:
+    env.logger_init(logger_path)
 # 模型加载
 model = PPO.load(modeL_path)
 
 # 评估
-mean_reward, std_reward = evaluate_policy(model=model, env=env, n_eval_episodes=1, deterministic=True, render=render,
-                                          callback=None, reward_threshold=None, return_episode_rewards=True, warn=True)
+mean_reward, std_reward = evaluate_policy(model=model, env=env, n_eval_episodes=n_eval_episodes, deterministic=True,
+                                          render=render, callback=None, reward_threshold=None,
+                                          return_episode_rewards=True, warn=True)
 print(mean_reward, std_reward)
 
-
-result_dict = load_episode(logger_path)
-for idx, (name, series) in enumerate(result_dict.items()):
-    num = series.shape[-1]
-    plt.figure(idx + 1)
-    if name == 'observation':
-        plt.plot(series[:,-1,:])
-    else:
-        plt.plot(series)
-    plt.grid()
-    plt.legend(np.linspace(1, num, num, dtype=int).astype(str).tolist())
-    plt.title(name)
-    if save_fig:
-        plt.savefig(logger_path + '/' + name)
-if plot_fig:
-    plt.show()
+if eval_flag:
+    result_dict = load_episode(logger_path)
+    eval_everything(env, result_dict, plot_fig, save_fig, logger_path)

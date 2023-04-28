@@ -19,7 +19,7 @@ from envs.controller import orientation_error_quat_with_mat
 import matplotlib.pyplot as plt
 import numpy as np
 
-task = 'desk with plan'
+task = 'cabinet surface with plan v7'
 test_times = 1
 plot_flag = True
 

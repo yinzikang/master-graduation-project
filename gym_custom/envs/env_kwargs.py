@@ -480,7 +480,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         step_num = robot_frequency * time_whole
         # 期望轨迹
         xpos_init, xmat_init = np.array([0.35, -0.1135, 0.565]), np.array([0, 1, 0, 1, 0, 0, 0, 0, -1])
-        xpos_end, xmat_end = np.array([0.65, -0.1135, 0.582]), np.array([0, 1, 0, 1, 0, 0, 0, 0, -1])
+        xpos_end, xmat_end = np.array([0.65, -0.1135, 0.565+0.3*np.tan(3/180*np.pi)]), np.array([0, 1, 0, 1, 0, 0, 0, 0, -1])
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
                                                                                                xpos_end, xmat_end,
                                                                                                time_whole,
@@ -490,24 +490,15 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
-        K = np.array([1000, 1000, 3000, 1000, 1000, 1000], dtype=np.float64)
+        K = np.array([1000, 1000, 2000, 1000, 1000, 1000], dtype=np.float64)
         M = K / (wn * wn)
         B = 2 * damping_ratio * np.sqrt(M * K)
         # SM = np.eye(3)
         SM = np.array([[0.9986295, 0, -0.0523360],
                        [0, 1, 0],
                        [0.0523360, 0, 0.9986295]])
-        # SM = np.array([[0., 0, 1],
-        #                [0, 1, 0],
-        #                [-1, 0, 0]])
         controller_parameter = {'M': M, 'B': B, 'K': K, 'SM': SM}
         controller = AdmittanceController_v2
-        # wn = 20
-        # damping_ratio = np.sqrt(2)
-        # kp = wn * wn * np.ones(6, dtype=np.float64)
-        # kd = 2 * damping_ratio * np.sqrt(kp)
-        # controller_parameter = {'kp': kp, 'kd': kd}
-        # controller = ComputedTorqueController
 
         rbt_controller_kwargs = copy.deepcopy(rbt_kwargs)
         rbt_controller_kwargs.update(controller_parameter=controller_parameter, controller=controller,
@@ -589,15 +580,15 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         # [0.35, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        min_desired_xposture = np.array([0.35, -0.1235, 0.56, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        min_desired_xposture = np.array([0.35, -0.1335, 0.56, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        max_desired_xposture = np.array([0.65, -0.1035, 0.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        max_desired_xposture = np.array([0.65, -0.0935, 0.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         min_desired_xvel = -0.15 * np.ones(6)
         max_desired_xvel = 0.15 * np.ones(6)
         min_desired_xacc = desired_xacc_list.min() * np.ones(6)
         max_desired_xacc = desired_xacc_list.max() * np.ones(6)
         rl_frequency = 20  # 500可以整除，越大越多
-        observation_range = 3
+        observation_range = 10
 
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
         rl_env_kwargs.update(min_K=min_K, max_K=max_K, max_force=max_force,
@@ -605,7 +596,6 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
                              min_desired_xvel=min_desired_xvel, max_desired_xvel=max_desired_xvel,
                              min_desired_xacc=min_desired_xacc, max_desired_xacc=max_desired_xacc,
                              rl_frequency=rl_frequency, observation_range=observation_range)
-
 
     elif task == 'cabinet drawer open':
         # 实验内容

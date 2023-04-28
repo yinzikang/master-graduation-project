@@ -33,7 +33,7 @@ _, _, rl_kwargs = env_kwargs(test_name, save_flag=True, save_path=path_name)
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = gym.make(env_name, **rl_kwargs)
 
-total_timesteps = 100_000
+total_timesteps = 1_000_000
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,
                      features_extractor_kwargs=dict(features_dim=128, num_layers=2),
                      share_features_extractor=True,

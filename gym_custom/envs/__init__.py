@@ -9,3 +9,10 @@ from gym_custom.envs.jk5_env_v7 import TrainEnvVariableStiffnessAndPostureAndSM 
 from gym_custom.envs.jk5_env_v7 import VS as VSV7
 from gym_custom.envs.jk5_env_v7 import VSAP as VSAPV7
 from gym_custom.envs.jk5_env_v7 import VSAPAM as VSAPASMV7
+
+from gym_custom.envs.jk5_env_v8 import TrainEnvVariableStiffness as TrainEnvVariableStiffnessV8
+from gym_custom.envs.jk5_env_v8 import TrainEnvVariableStiffnessAndPosture as TrainEnvVariableStiffnessAndPostureV8
+from gym_custom.envs.jk5_env_v8 import TrainEnvVariableStiffnessAndPostureAndSM as TrainEnvVariableStiffnessAndPostureAndSMV8
+from gym_custom.envs.jk5_env_v8 import VS as VSV8
+from gym_custom.envs.jk5_env_v8 import VSAP as VSAPV8
+from gym_custom.envs.jk5_env_v8 import VSAPAM as VSAPASMV8

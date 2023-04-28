@@ -20,8 +20,8 @@ from spinup.utils.run_utils import setup_logger_kwargs
 from spinup.algos.pytorch.ppo.ppo import ppo
 from gym_custom.envs.env_kwargs import env_kwargs
 
-env_name = 'TrainEnvVariableStiffnessAndPosture-v6'
-test_name = 'cabinet surface with plan'
+env_name = 'TrainEnvVariableStiffnessAndPosture-v7'
+test_name = 'cabinet surface with plan v7'
 rl_name = 'PPO'
 time_name = time.strftime("%m-%d-%H-%M")
 path_name = 'train_results/' + test_name + '/' + rl_name + '/' + time_name + '/'
@@ -30,14 +30,14 @@ _, _, rl_kwargs = env_kwargs(test_name, save_flag=False, save_path=None)
 step_num = 80
 # 网络
 parser = argparse.ArgumentParser()
-parser.add_argument('--env', type=str, default='TrainEnvVariableStiffnessAndPosture-v6')
+parser.add_argument('--env', type=str, default=env_name)
 parser.add_argument('--hid', type=int, default=64)  # 隐藏层神经元个数
 parser.add_argument('--l', type=int, default=2)  # 隐藏层层数
 # 训练
 parser.add_argument('--max_ep_len', type=int, default=step_num)  # 每个episode长度
 epoch_num = 2_000 # 2000*80*4 = 640_000
 parser.add_argument('--epochs', type=int, default=epoch_num)  # epoch数量
-cpu_num = 4
+cpu_num = 1
 parser.add_argument('--cpu', type=int, default=cpu_num)
 parser.add_argument('--steps_per_epoch', type=int, default=step_num * cpu_num)  # 经验池大小
 parser.add_argument('--seed', '-s', type=int, default=7)

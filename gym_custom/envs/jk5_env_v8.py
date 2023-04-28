@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 """基于gym.Env的实现，用于sb3环境
 
-继承自v6,引入刚度椭圆
+继承自v7,修改位置为逐渐叠加
 
 Write typical usage example here
 
@@ -233,10 +233,12 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
         self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
         self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
-
+        self.delta_pos = np.zeros(3)
+        self.delta_mat = np.eye(3)
+        self.delta_quat = np.array([0, 0, 0, 1])
         self.status_list.extend(['controller_parameter',
                                  'desired_xpos', 'desired_xmat', 'desired_xquat', 'desired_xvel', 'desired_xacc',
-                                 'desired_force', 'tau'])
+                                 'desired_force', 'delta_pos', 'delta_mat', 'delta_quat', 'tau'])
 
         self.step_num = step_num
         self.current_step = 0
@@ -251,6 +253,9 @@ class Jk5StickRobotWithController(Jk5StickRobot):
                            desired_xvel=self.desired_xvel_list[self.current_step],
                            desired_xacc=self.desired_xacc_list[self.current_step],
                            desired_force=self.desired_force_list[self.current_step],
+                           delta_pos=self.delta_pos,
+                           delta_mat=self.delta_mat,
+                           delta_quat=self.delta_quat,
                            tau=np.array(self.data.ctrl[:]),
                            timestep=self.mjc_model.opt.timestep,
                            current_step=self.current_step)
@@ -305,6 +310,9 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         self.desired_xvel_list = copy.deepcopy(self.init_desired_xvel_list)
         self.desired_xacc_list = copy.deepcopy(self.init_desired_xacc_list)
         self.desired_force_list = copy.deepcopy(self.init_desired_force_list)
+        self.delta_pos = np.zeros(3)
+        self.delta_mat = np.eye(3)
+        self.delta_quat = np.array([0, 0, 0, 1])
         self.status.update(J=self.get_jacobian())
         self.current_step = 0
         self.status_buffer = []
@@ -698,7 +706,7 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
                                        high=1 * np.ones(self.action_num),
                                        dtype=np.float32)  # 连续动作空间
         self.action_limit = np.array([100, 100, 100, 10, 10, 10,
-                                      0.005, 0.005, 0.005,  # 位置变化限制
+                                      0.00025, 0.00025, 0.00025,  # 位置变化限制
                                       1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                       0.0,
                                       1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
@@ -718,9 +726,12 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
         sub_step = 0
         action = self.action_limit * action
         delta_K = action[:6] / self.sub_step_num
-        traj_pos, traj_direction, traj_angle = action[6:9], action[9:12] / np.linalg.norm(action[9:12]), action[12]
-        traj_mat = rotation_matrix(traj_angle, traj_direction)[:3, :3]
-        traj_quat = quaternion_about_axis(traj_angle, traj_direction)
+        ddelta_pos, ddelta_direction, ddelta_angle = action[6:9] / self.sub_step_num, action[9:12] / np.linalg.norm(
+            action[9:12]), action[12]
+        ddelta_mat = rotation_matrix(ddelta_angle, ddelta_direction)[:3, :3]
+        ddelta_quat = quaternion_about_axis(ddelta_angle, ddelta_direction)
+        self.delta_mat = ddelta_mat @ self.delta_mat
+        self.delta_quat = quaternion_multiply(ddelta_quat, self.delta_quat)
         ellipsoid_direction, ellipsoid_angle = action[13:16] / np.linalg.norm(action[13:16]), action[16]
         # 刚度椭圆姿态变化量，进行旋转，相对于世界坐标系（每一次更新间恒定，有叠加效果）
         self.controller_parameter['SM'] = rotation_matrix(ellipsoid_angle, ellipsoid_direction)[:3, :3] @ \
@@ -732,9 +743,10 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
             self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
             self.controller_parameter['M'] = M
             # 位姿变化量，进行叠加（每一次更新间不同，无叠加效果）
-            self.status['desired_xpos'] += traj_pos
-            self.status['desired_xmat'] = traj_mat @ self.status['desired_xmat']
-            self.status['desired_xquat'] = quaternion_multiply(traj_quat, self.status['desired_xquat'])
+            self.delta_pos += ddelta_pos
+            self.status['desired_xpos'] += self.delta_pos
+            self.status['desired_xmat'] = self.delta_mat @ self.status['desired_xmat']
+            self.status['desired_xquat'] = quaternion_multiply(self.delta_quat, self.status['desired_xquat'])
 
             # 可视化
             if hasattr(self, 'viewer'):
@@ -754,6 +766,9 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
                                          desired_xvel=self.status["desired_xvel"].copy(),
                                          desired_xacc=self.status["desired_xacc"].copy(),
                                          desired_force=self.status["desired_force"].copy(),
+                                         delta_pos=self.status['delta_pos'].copy(),
+                                         delta_mat=self.status['delta_mat'].copy(),
+                                         delta_quat=self.status['delta_quat'].copy(),
                                          tau=self.status["tau"].copy())
 
             super().step()
