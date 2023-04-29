@@ -15,6 +15,153 @@ import matplotlib.pyplot as plt
 from gym_custom.envs.controller import orientation_error_quat_with_quat
 
 
+def eval_robot(buffer, view_flag=True, save_fig=False, logger_path=None):
+    i = 0
+    plt.figure(i)
+    plt.plot(buffer["xpos"])
+    plt.plot(buffer["desired_xpos"])
+    plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+    plt.title('xpos')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot((buffer["xpos"] - buffer["desired_xpos"]))
+    plt.legend(['x', 'y', 'z'])
+    plt.title('xpos error')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["xvel"][:, :3])
+    plt.plot(buffer["desired_xvel"][:, :3])
+    plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+    plt.title('xpos_vel')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(np.diff(buffer["xvel"][:, :3], axis=0))
+    plt.plot(np.diff(buffer["desired_xvel"][:, :3], axis=0))
+    # plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+    plt.legend(['x', 'y', 'dx', 'dy'])
+    plt.title('xpos_acc')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["xquat"])
+    plt.plot(buffer["desired_xquat"])
+    plt.legend(['x', 'y', 'z', 'w', 'dx', 'dy', 'dz', 'dw'])
+    plt.title('xquat')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["xvel"][:, 3:])
+    plt.plot(buffer["desired_xvel"][:, 3:])
+    plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+    plt.title('xmat_vel')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    orientation_error_buffer = []
+    for j in range(len(buffer["xquat"])):
+        orientation_error_buffer.append(
+            orientation_error_quat_with_quat(buffer["desired_xquat"][j], buffer["xquat"][j]))
+    plt.plot(orientation_error_buffer)
+    plt.legend(['x', 'y', 'z'])
+    plt.title('orientation_error')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["qpos"])
+    plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+    plt.title('qpos')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["qvel"])
+    plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+    plt.title('qvel')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    delta_pos = np.array(buffer["xpos"]) - np.array(buffer["desired_xpos"])
+    f = np.array(buffer["contact_force"])[:, :3]
+    stiffness = np.zeros_like(delta_pos)
+    for j in range(len(stiffness)):
+        if not np.any(f[j, :] == 0):
+            stiffness[j] = delta_pos[j, :] / f[j, :]
+    i += 1
+    plt.figure(i)
+    plt.plot(stiffness[3:, :])
+    plt.legend(['x', 'y', 'z'])
+    plt.title('1/stiffness')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["contact_force"])
+    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    plt.title('contact_force')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["contact_force_l"])
+    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    plt.title('contact_force_l')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["touch_force"])
+    plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+    plt.title('touch_force')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(buffer["tau"])
+    plt.legend(['j1', 'j2', 'j3', 'j4', 'j5', 'j6'])
+    plt.title('tau')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    if view_flag:
+        plt.show()
+
+
 def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_path=None):
     for _, (name, value) in enumerate(result_dict.items()):
         result_dict[name] = np.array(value)
@@ -112,7 +259,7 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
 
         i += 1
         plt.figure(i)
-        plt.plot(result_dict["delta_mat"].reshape((result_dict["delta_mat"].shape[0],-1)))
+        plt.plot(result_dict["delta_mat"].reshape((result_dict["delta_mat"].shape[0], -1)))
         plt.legend(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
         plt.title('delta_mat')
         plt.grid()

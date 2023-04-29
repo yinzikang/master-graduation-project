@@ -8,15 +8,16 @@
         <material name="MatLightWood" texrepeat="3 3" specular="0.4" shininess="0.1"/>
     </asset>
     <worldbody>
-        <body name="cabinet" pos="0.8 -0.1135 0.2" quat="0 0 0 1">
+        <body name="cabinet" pos="0.8 -0.1135 0.2" quat="0 -0.02617694830787315 0 0.9996573249755573">
+<!--        <body name="cabinet" pos="0.8 -0.1135 0.2" quat="1 0 0 0">-->
             <!--按压任务-->
             <body name="top board" pos="0 0 0.565">
                 <geom size=".2 .2 .01" pos="0 0 0" type="box" rgba="0 0 0 1"
-                      solimp="0.1 0.3 0.001 0.5 2" solref="-50000.0 -0.1"/>
+                      solimp="0.1 0.3 0.001 0.5 2" solref="-20000.0 -0.1"/>
                 <inertial pos="0 0 0" mass="1000" diaginertia="0.1 0.1 0.1"/>
             </body>
             <!--抽屉任务。
-            关闭时，把手中心实际位置为：0.8-0.2-0.0175,0,0.2+0.42+0.055=0.5825,0,0.675 -->
+            关闭时，把手中心实际位置为：0.8-0.2-0.0175,-0.1135,0.2+0.42+0.055=0.5825,-0.1135,0.675 -->
             <body name="drawer" pos="0.01 0 0.42">
                 <!--底部-->
                 <geom size=".175 .1625 .0025" pos="0 0 -0.0025" type="box" rgba="1 1 1 1"/>

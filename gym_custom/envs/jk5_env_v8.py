@@ -89,9 +89,9 @@ class Jk5StickRobot:
         elif 'cabinet surface with plan' in self.task:  # 储物柜桌面任务ee长0.169
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
-        elif self.task == 'cabinet drawer open' or self.task == 'cabinet drawer close':  # 执行器中心
+        elif 'cabinet drawer' in self.task:  # 执行器中心
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
-                                       kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
+                                       kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0 - 0.004, 0.169 + 0.011))))
         elif self.task == 'cabinet door open' or self.task == 'cabinet door close':  # 储物柜门任务ee长0.06
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
@@ -429,33 +429,50 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             # 奖励范围： - 1.5
             xpos_error = self.status['desired_xpos'] - self.status['xpos']
             contact_force = self.status['contact_force']
+            # table = np.eye(3)
             table = np.array([[0.9986295, 0, -0.0523360],
                               [0, 1, 0],
                               [0.0523360, 0, 0.9986295]])
             contact_force_table = (table.transpose() @ contact_force.reshape((3, 2), order="F")).reshape(-1, order="F")
-            tau = self.status['tau']
-
-            ## 运动状态的奖励
-            movement_reward = - abs(table.transpose() @ xpos_error)[0]
-            fext_reward = - np.sum(abs(contact_force_table - self.desired_force_list[self.current_step, :]))
+            # 运动状态的奖励
+            movement_reward = - np.sum(abs(table.transpose() @ xpos_error)[[0, 1]])
             # 要是力距离期望力较近则进行额外奖励
+            fext_reward = - np.sum(abs(contact_force_table - self.desired_force_list[self.current_step, :]))
             fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+
+            reward = 250 * movement_reward + 0.05 * fext_reward + 1.
+
+        elif 'cabinet drawer open with plan' in self.task:
+            xpos_error = self.status['desired_xpos'] - self.status['xpos']
+            contact_force = self.status['contact_force']
+            # table = np.eye(3)
+            table = np.array([[0.9986295, 0, -0.0523360],
+                              [0, 1, 0],
+                              [0.0523360, 0, 0.9986295]])
+            contact_force_table = (table.transpose() @ contact_force.reshape((3, 2), order="F")).reshape(-1, order="F")
+            # 优化抽屉移动方向外所有力，要是力距离期望力较近则进行额外奖励
+            fext_reward = - np.sum(abs(contact_force_table - self.desired_force_list[self.current_step])[1:])
+            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+            # 运动状态的奖励，对应抽屉打开完成度
+            movement_reward = - abs(table.transpose() @ xpos_error)[0]
+
+            reward = 0 * movement_reward + 0.05 * fext_reward + 1.
+        else:
+            tau = self.status['tau']
             tau_reward = - np.sqrt(np.sum(tau ** 2))
             ## 任务结束的奖励与惩罚
-            completion_ratio_penalty = (table.transpose() @ xpos_error)[0] if done else 0
+            # completion_ratio_penalty = (table.transpose() @ xpos_error)[0] if done else 0
             early_stop_penalty = (self.step_num - self.current_step) / self.step_num if done else 0
             error_k_penalty = -1 if failure else 0
             ## 接触力的奖励与惩罚
-            zero_force_penalty = -1 if np.max(np.abs(contact_force)) < 1 else 0
-            massive_force_penalty = -1 if np.max(np.abs(contact_force)) > 50 else 0
+            # zero_force_penalty = -1 if np.max(np.abs(contact_force)) < 1 else 0
+            # massive_force_penalty = -1 if np.max(np.abs(contact_force)) > 50 else 0
 
             # reward = 0 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
             #           1 * error_k_penalty + 1 * early_stop_penalty + \
             #           0.5 * zero_force_penalty + 0 * massive_force_penalty
-            reward = 0 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
-                     0 * error_k_penalty + 0 * early_stop_penalty + \
-                     0 * zero_force_penalty + 0 * massive_force_penalty + 1.
-            return reward
+
+        return reward
 
     def reset(self):
         super().reset()
@@ -708,9 +725,9 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
         self.action_limit = np.array([100, 100, 100, 10, 10, 10,
                                       0.00025, 0.00025, 0.00025,  # 位置变化限制
                                       1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
-                                      0.0,
+                                      0.00,
                                       1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
-                                      0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
+                                      0.001], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
     def step(self, action):
         """

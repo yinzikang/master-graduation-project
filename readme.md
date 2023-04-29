@@ -246,6 +246,17 @@ orientation是最直观的误差，在哪个方向上加力就产生哪个方向
 
 锁住能够降低震荡，基本无震荡
 
+r = np.sqrt(0.2175^2+0.475^2)
+theta = np.arctan(0.475/0.2175)
+x=0.8-r*np.cos(theta-np.pi/60)
+y=-0.1135
+z=0.2+r*np.sin(theta-np.pi/60)
+
+0.5579384969754818,-0.1135,0.6629659585255823
+
+env.inverse_kinematics(env.qpos_init_list,np.array([x,y,z]),
+np.array([0, 0, 1, 1, 0, 0, 0, 1, 0]))
+
 ## 门
 
 开门时估计半径大于实际半径可保一直接触  

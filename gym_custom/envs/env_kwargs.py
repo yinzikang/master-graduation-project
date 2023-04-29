@@ -480,7 +480,8 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         step_num = robot_frequency * time_whole
         # 期望轨迹
         xpos_init, xmat_init = np.array([0.35, -0.1135, 0.565]), np.array([0, 1, 0, 1, 0, 0, 0, 0, -1])
-        xpos_end, xmat_end = np.array([0.65, -0.1135, 0.565+0.3*np.tan(3/180*np.pi)]), np.array([0, 1, 0, 1, 0, 0, 0, 0, -1])
+        xpos_end, xmat_end = np.array([0.65, -0.1135, 0.565 + 0.3 * np.tan(3 / 180 * np.pi)]), np.array(
+            [0, 1, 0, 1, 0, 0, 0, 0, -1])
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
                                                                                                xpos_end, xmat_end,
                                                                                                time_whole,
@@ -511,9 +512,9 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         # [0.35, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        min_desired_xposture = np.array([0.35, -0.1235, 0.56, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        min_desired_xposture = np.array([0.35, -0.1335, 0.56, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        max_desired_xposture = np.array([0.65, -0.1035, 0.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        max_desired_xposture = np.array([0.65, -0.0935, 0.6, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         min_desired_xvel = -0.15 * np.ones(6)
         max_desired_xvel = 0.15 * np.ones(6)
         min_desired_xacc = desired_xacc_list.min() * np.ones(6)
@@ -640,40 +641,41 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         rl_env_kwargs.update(min_K=min_K, max_K=max_K,
                              rl_frequency=rl_frequency, observation_range=observation_range)
     elif task == 'cabinet drawer open with plan':
-        # 实验内容
+        # 机器人参数
         mjc_model_path = 'robot/jk5_cabinet_drawer.xml'
-        qpos_init_list = np.array([0, 1.16644734e+01, -9.85767024e+01, 8.69122291e+01, 90, 0]) / 180 * np.pi
+        # qpos_init_list = np.array([0, 1.16644734e+01, -9.85767024e+01, 8.69122291e+01, 90, 0]) / 180 * np.pi
+        qpos_init_list = np.array([0, 2.63855021e-01, -1.80129209e+00, 1.53743707, 1.57079633, 0])
         p_bias = np.zeros(3)
         r_bias = np.eye(3)
-        rl_frequency = 5  # 500可以整除，越大越多
-        observation_range = 1
-        step_num = 2000
+        rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
+                          p_bias=p_bias, r_bias=r_bias)
+
+        # 用于Jk5StickStiffnessEnv的超参数
+        robot_frequency = 500
         time_whole = 4
         time_acceleration = 0.5
-        f = 500
+        step_num = robot_frequency * time_whole
         # 期望轨迹
-        xpos_init, xmat_init = np.array([0.5715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
-        xpos_end, xmat_end = np.array([0.2715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        # xpos_init, xmat_init = np.array([0.5715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        xpos_init, xmat_init = np.array([0.5579384969754818, -0.1135, 0.6629659585255823]), np.array(
+            [0, 0, 1, 1, 0, 0, 0, 1, 0])
+        # xpos_end, xmat_end = np.array([0.2715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        xpos_end, xmat_end = xpos_init - np.array([0.3, 0, 0]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
                                                                                                xpos_end, xmat_end,
                                                                                                time_whole,
-                                                                                               time_acceleration, f)
-        desired_force_list = np.array([[0, 0, 30, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+                                                                                               time_acceleration,
+                                                                                               robot_frequency)
+        desired_force_list = np.array([[30, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
         K = np.array([1000, 1000, 1000, 1000, 1000, 1000], dtype=np.float64)
         M = K / (wn * wn)
-        M_matrix = np.diag(M)
+        SM = np.eye(3, dtype=np.float64)
         B = 2 * damping_ratio * np.sqrt(M * K)
-        controller_parameter = {'M': M_matrix, 'B': B, 'K': K}
-        controller = AdmittanceController
-        min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
-        max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
-        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
-        rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
-                          p_bias=p_bias, r_bias=r_bias)
-        # 用于Jk5StickStiffnessEnv的超参数
+        controller_parameter = {'M': M, 'B': B, 'K': K, 'SM': SM}
+        controller = AdmittanceController_v2
         rbt_controller_kwargs = copy.deepcopy(rbt_kwargs)
         rbt_controller_kwargs.update(controller_parameter=controller_parameter, controller=controller,
                                      step_num=step_num,
@@ -681,9 +683,26 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
                                      desired_xacc_list=desired_xacc_list, desired_force_list=desired_force_list)
 
         # 用于TrainEnv的超参数
+        min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
+        max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
+        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
+        min_desired_xposture = np.array([0.2715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
+        max_desired_xposture = np.array([0.5715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        min_desired_xvel = -0.1 * np.ones(6)
+        max_desired_xvel = 0.1 * np.ones(6)
+        min_desired_xacc = desired_xacc_list.min() * np.ones(6)
+        max_desired_xacc = desired_xacc_list.max() * np.ones(6)
+        rl_frequency = 20  # 500可以整除，越大越多
+        observation_range = 10
+
         rl_env_kwargs = copy.deepcopy(rbt_controller_kwargs)
         rl_env_kwargs.update(min_K=min_K, max_K=max_K, max_force=max_force,
+                             min_desired_xposture=min_desired_xposture, max_desired_xposture=max_desired_xposture,
+                             min_desired_xvel=min_desired_xvel, max_desired_xvel=max_desired_xvel,
+                             min_desired_xacc=min_desired_xacc, max_desired_xacc=max_desired_xacc,
                              rl_frequency=rl_frequency, observation_range=observation_range)
+
     elif task == 'cabinet drawer close':
         # 实验内容
         mjc_model_path = 'robot/jk5_cabinet_v2.xml'
