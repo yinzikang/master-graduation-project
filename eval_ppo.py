@@ -24,12 +24,13 @@ import numpy as np
 # 任务参数
 # 环境加载
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v8'
-test_name = 'cabinet surface with plan v7'
+# test_name = 'cabinet surface with plan v7'
+test_name = 'cabinet drawer open with plan'
 rl_name = 'PPO'
-time_name = '04-28-17-12'
+time_name = '04-29-15-57'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 655360
-mode = 1
+mode = 3
 
 eval_flag = True
 save_fig = True
@@ -47,7 +48,7 @@ elif mode == 3:  # 评估最优模型
     logger_path = "eval_results/" + path_name + "best_model"
     modeL_path = "train_results/" + path_name + "best_model"
 
-_, _, rl_kwargs = env_kwargs(env_name, test_name, save_flag=False)
+_, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
 env = gym.make(env_name, **rl_kwargs)
 if eval_flag:
     env.logger_init(logger_path)

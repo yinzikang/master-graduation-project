@@ -28,11 +28,11 @@ env = gym.make(env_name, **rl_kwargs)
 if not check_env(env):
     print('check passed')
 
-test_times = 1
+test_times = 10
 render_flag = False
-plot_fig = True
+plot_fig = False
 save_fig = False
-zero_action_flag = True
+zero_action_flag = False
 
 for _ in range(test_times):
     env.reset()

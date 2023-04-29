@@ -16,8 +16,8 @@ from gym_custom.envs.env_kwargs import env_kwargs
 from eval_everything import eval_robot
 import numpy as np
 
-test_name = 'cabinet drawer open with plan'
 # test_name = 'cabinet surface with plan v7'
+test_name = 'cabinet drawer open with plan'
 test_times = 1
 plot_flag = True
 

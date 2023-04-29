@@ -1,4 +1,4 @@
-<!--修改自jk5_cabinet_surface，但是倾斜了-->
+<!--修改自jk5_cabinet_surface，但是倾斜了，用于擦拭任务-->
 <mujoco model="jk5_cabinet">
     <include file="basic_env.xml"/>
     <include file="robot_stick.xml"/>
