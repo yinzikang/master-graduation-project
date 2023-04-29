@@ -43,7 +43,7 @@ def update_ellipse(event):
 
 
 # 加载保存的k和direction
-path = './eval_results/cabinet surface with plan v7/PPO/04-18-12-48/model/'
+path = './eval_results/cabinet surface with plan v7/PPO/04-29-18-41/best_model/'
 k_series = np.load(path + 'K.npy')
 R_series = np.load(path + 'direction.npy')
 

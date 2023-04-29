@@ -31,15 +31,15 @@ _, _, rl_kwargs = env_kwargs(test_name, save_flag=True, save_path=path_name)
 env_num = 8
 episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
-eval_env = gym.make(env_name, **rl_kwargs)
+eval_env =  make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 
 total_timesteps = episode_length * env_num * 2 ** 8  # 11: 655_360, 12: 1310720, 13: 2621440
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,
                      features_extractor_kwargs=dict(features_dim=64, num_layers=2),
                      share_features_extractor=True,
                      activation_fn=th.nn.ReLU,
-                     net_arch=[dict(pi=[64, 64], vf=[64, 64])])
-replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
+                     net_arch=dict(pi=[64, 64], vf=[64, 64]))
+# replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
 checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / env_num),
                                          save_path=path_name, name_prefix="model",
                                          save_replay_buffer=False, save_vecnormalize=False)
@@ -55,7 +55,7 @@ model = PPO('MlpPolicy', train_env, learning_rate=0.0003, policy_kwargs=policy_k
             gae_lambda=0.98,
             ent_coef=0.0, vf_coef=0.0, max_grad_norm=0.5,
             # 算法特有参数，n_epochs=n_steps/batch_size
-            n_epochs=16, clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.01)
+            n_epochs=32, clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.01)
 model.learn(total_timesteps=total_timesteps, callback=callback, log_interval=4, tb_log_name="",
             reset_num_timesteps=True, progress_bar=True)
 model.save(path=path_name + 'model')

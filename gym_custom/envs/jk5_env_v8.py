@@ -19,7 +19,7 @@ import mujoco as mp
 import PyKDL as kdl
 from gym_custom.utils.custom_logx import EpisodeLogger
 from gym_custom.utils.custom_viewer import EnvViewer
-from gym_custom.envs.controller import mat33_to_quat, to_kdl_qpos, to_numpy_qpos, to_kdl_frame, to_numpy_frame,\
+from gym_custom.envs.controller import mat33_to_quat, to_kdl_qpos, to_numpy_qpos, to_kdl_frame, to_numpy_frame, \
     orientation_error_quat_with_quat
 from gym_custom.envs.transformations import quaternion_about_axis, rotation_matrix, quaternion_multiply
 from gym_custom.envs.env_kwargs import env_kwargs
@@ -428,23 +428,24 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
     def get_reward(self, done, success, failure):
         if 'cabinet surface with plan' in self.task:
             # 奖励范围： - 1.5
-            xpos_error = self.status['desired_xpos'] - self.status['xpos']
-            # xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
-            #                                  orientation_error_quat_with_quat(self.status['desired_xquat'],
-            #                                                                   self.status['xquat'])])
-            contact_force = self.status['contact_force']
+            xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
+                                             orientation_error_quat_with_quat(self.status['desired_xquat'],
+                                                                              self.status['xquat'])])
+            force_error = self.status['contact_force'] - self.status['desired_force']
             # table = np.eye(3)
             table = np.array([[0.9986295, 0, -0.0523360],
                               [0, 1, 0],
                               [0.0523360, 0, 0.9986295]])
-            contact_force_table = (table.transpose() @ contact_force.reshape((3, 2), order="F")).reshape(-1, order="F")
+            xposture_error_table = (table.transpose() @ xposture_error.reshape((3, 2), order="F")).reshape(-1,
+                                                                                                           order="F")
+            force_error_table = (table.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1, order="F")
             # 运动状态的奖励
-            movement_reward = - np.sum(abs(table.transpose() @ xpos_error)[[0, 1]])
+            movement_reward = - np.sum(abs(xposture_error_table)[[0, 1, 2, 3, 4]])
             # 要是力距离期望力较近则进行额外奖励
-            fext_reward = - np.sum(abs(contact_force_table - self.desired_force_list[self.current_step, :]))
+            fext_reward = - np.sum(abs(force_error_table))
             fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
 
-            reward = 25 * movement_reward + 0.05 * fext_reward + 1.
+            reward = 5 * movement_reward + 0.05 * fext_reward + 1.
 
         elif 'cabinet drawer open with plan' in self.task:
             xpos_error = self.status['desired_xpos'] - self.status['xpos']
@@ -461,6 +462,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             movement_reward = - abs(table.transpose() @ xpos_error)[0]
 
             reward = 25 * movement_reward + 0.05 * fext_reward + 1.
+
         else:
             tau = self.status['tau']
             tau_reward = - np.sqrt(np.sum(tau ** 2))
@@ -730,13 +732,13 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
             self.action_limit = np.array([100, 100, 100, 10, 10, 10,
                                           0.001, 0, 0.001,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
-                                          0.01,
+                                          0.001,
                                           1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
                                           0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
         elif 'cabinet drawer open with plan' in kwargs['task']:
             self.action_limit = np.array([100, 100, 100, 10, 10, 10,
-                                          0.0025, 0.0025, 0.0025,  # 位置变化限制
+                                          0.001, 0.001, 0.001,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                           0.01,
                                           1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
