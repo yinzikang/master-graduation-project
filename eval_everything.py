@@ -397,6 +397,25 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     if save_fig:
         plt.savefig(logger_path + '/' + plt.gca().get_title())
 
+    table = np.array([[0.9986295, 0, -0.0523360],
+                      [0, 1, 0],
+                      [0.0523360, 0, 0.9986295]])
+    force_error_table = np.empty_like(result_dict["desired_force"])
+    for k in range(desired_force_table.shape[0]):
+        desired_force_table[k] = (table.transpose() @ result_dict["desired_force"][k].reshape((3, 2), order="F")).\
+            reshape(-1, order="F")
+        contact_force_table[k] = (table.transpose() @ result_dict["contact_force"][k].reshape((3, 2), order="F")).\
+            reshape(-1, order="F")
+        force_error_table[k] = contact_force_table[k] - desired_force_table[k]
+    i += 1
+    plt.figure(i)
+    plt.plot(force_error_table)
+    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    plt.title('force error table')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
     # delta_pos = result_dict["xpos"] - result_dict["desired_xpos"]
     # f = result_dict["contact_force"][:, :3]
     # stiffness = np.zeros_like(delta_pos)

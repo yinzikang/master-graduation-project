@@ -292,7 +292,7 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         if self.task == "close door":
             self.data.joint('hinge').qpos = np.pi / 2
 
-        if self.task == "cabinet drawer open with plan":
+        if "cabinet drawer open" in self.task:
             pos1 = np.array(self.data.body("dummy_body").xpos)
             pos2 = np.array(self.data.body("drawer handle").xpos)
             mat1 = np.array(self.data.body("dummy_body").xmat).reshape(3, 3)
@@ -437,8 +437,9 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
                                        [0, 1, 0],
                                        [0.0523360, 0, 0.9986295]])
             xposture_error_table = (table_rotation.transpose() @ xposture_error.reshape((3, 2), order="F")).reshape(-1,
-                                                                                                           order="F")
-            force_error_table = (table_rotation.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1, order="F")
+                                                                                                                    order="F")
+            force_error_table = (table_rotation.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1,
+                                                                                                              order="F")
 
             # 运动状态的奖励
             movement_reward = - np.sum(abs(xposture_error_table)[[0, 1, 3, 4, 5]])
@@ -467,8 +468,9 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_error_table)[1:])
             fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
-
-            reward = 5 * movement_reward + 0.05 * fext_reward + 1.
+            # 撞墙的惩罚
+            penalty = - 10 if failure else 0
+            reward = 0 * movement_reward + 0.05 * fext_reward + 1 * penalty + 1.
 
         else:
             tau = self.status['tau']

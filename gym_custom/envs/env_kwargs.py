@@ -666,10 +666,11 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         step_num = robot_frequency * time_whole
         # 期望轨迹
         # xpos_init, xmat_init = np.array([0.5715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
-        xpos_init, xmat_init = np.array([0.5579384969754818, -0.1135, 0.6629659585255823]), np.array(
+        xpos_init, xmat_init = np.array([0.5579384977900208-0.011, -0.1135, 0.6629659565228068+0.004]), np.array(
             [0, 0, 1, 1, 0, 0, 0, 1, 0])
         # xpos_end, xmat_end = np.array([0.2715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         xpos_end, xmat_end = xpos_init - np.array([0.3, 0, 0]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        # xpos_end, xmat_end = xpos_init.copy(), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
                                                                                                xpos_end, xmat_end,
                                                                                                time_whole,
@@ -695,7 +696,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 用于TrainEnv的超参数
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
-        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
+        max_force = np.array([15, 15, 15, 15, 15, 15], dtype=np.float64)
         min_desired_xposture = np.array([0.2715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
         max_desired_xposture = np.array([0.5715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])

@@ -31,7 +31,7 @@ for i in range(test_times):
         buffer[status_name] = [env.status[status_name]]
     for _ in range(rbt_controller_kwargs['step_num']):
         env.step()
-        env.render(pause_start=True)
+        # env.render(pause_start=True)
         for status_name in env.status_list:
             buffer[status_name].append(env.status[status_name])
     for status_name in env.status_list:

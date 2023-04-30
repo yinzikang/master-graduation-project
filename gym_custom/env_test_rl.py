@@ -16,8 +16,8 @@ from stable_baselines3.common.env_checker import check_env
 from envs.env_kwargs import env_kwargs
 from eval_everything import eval_everything
 
-test_name = 'cabinet surface with plan v7'
-# test_name = 'cabinet drawer open with plan'
+# test_name = 'cabinet surface with plan v7'
+test_name = 'cabinet drawer open with plan'
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v8'
 logger_path = './rl_test_results/' + test_name + '/' + env_name
 _, _, rl_kwargs = env_kwargs(test_name)
@@ -32,7 +32,7 @@ test_times = 1
 render_flag = False
 plot_fig = True
 save_fig = False
-zero_action_flag = True
+zero_action_flag = False
 
 for _ in range(test_times):
     env.reset()
