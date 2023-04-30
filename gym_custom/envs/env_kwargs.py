@@ -479,19 +479,27 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         time_acceleration = 0.5
         step_num = robot_frequency * time_whole
         # 期望轨迹
-        xpos_init, xmat_init = np.array([0.35, -0.1135, 0.565]), np.array([0, 1, 0, 1, 0, 0, 0, 0, -1])
-        xpos_end, xmat_end = np.array([0.65, -0.1135, 0.565 + 0.3 * np.tan(3 / 180 * np.pi)]), np.array(
-            [0, 1, 0, 1, 0, 0, 0, 0, -1])
+        table = np.array([[0.9986295, 0, -0.0523360],
+                       [0, 1, 0],
+                       [0.0523360, 0, 0.9986295]])
+        init = np.array([[0, 1, 0],
+                       [1, 0, 0],
+                       [0, 0, -1]])
+        # xpos_init, xmat_init = np.array([0.35, -0.1135, 0.565]), (table @ init).reshape(-1)
+        # xpos_end, xmat_end = np.array([0.65, -0.1135, 0.565 + 0.3 * np.tan(3 / 180 * np.pi)]), (table @ init).reshape(-1)
+        xpos_init, xmat_init = np.array([0.45, -0.1135, 0.565]), (table @ init).reshape(-1)
+        xpos_end, xmat_end = np.array([0.45, -0.1135, 0.565]), (table @ init).reshape(-1)
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
                                                                                                xpos_end, xmat_end,
                                                                                                time_whole,
                                                                                                time_acceleration,
                                                                                                robot_frequency)
-        desired_force_list = np.array([[0, 0, 30, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_force_list = np.array([[-30*np.sin(np.pi/60), 0, 30*np.cos(np.pi/60), 0, 0, 0]], dtype=np.float64).\
+            repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
-        K = np.array([1000, 1000, 2000, 1000, 1000, 1000], dtype=np.float64)
+        K = np.array([1000, 1000, 1000, 1000, 1000, 1000], dtype=np.float64)
         M = K / (wn * wn)
         B = 2 * damping_ratio * np.sqrt(M * K)
         # SM = np.eye(3)
@@ -550,7 +558,8 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
                                                                                                time_whole,
                                                                                                time_acceleration,
                                                                                                robot_frequency)
-        desired_force_list = np.array([[0, 0, 30, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_force_list = np.array([[-30*np.sin(np.pi/60), 0, 30*np.cos(np.pi/60), 0, 0, 0]], dtype=np.float64).\
+            repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
@@ -666,7 +675,8 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
                                                                                                time_whole,
                                                                                                time_acceleration,
                                                                                                robot_frequency)
-        desired_force_list = np.array([[30, 0, 0, 0, 0, 0]], dtype=np.float64).repeat(step_num, axis=0)
+        desired_force_list = np.array([[30*np.cos(np.pi/60), 0, -30*np.sin(np.pi/60), 0, 0, 0]], dtype=np.float64).\
+            repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)

@@ -33,7 +33,7 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env =  make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 
-total_timesteps = episode_length * env_num * 2 ** 10  # 11: 655_360, 12: 1310720, 13: 2621440
+total_timesteps = episode_length * env_num * 2 ** 8  # 11: 655_360, 12: 1310720, 13: 2621440
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,
                      features_extractor_kwargs=dict(features_dim=64, num_layers=2),
                      share_features_extractor=True,
