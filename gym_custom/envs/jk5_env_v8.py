@@ -431,21 +431,22 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
                                              orientation_error_quat_with_quat(self.status['desired_xquat'],
                                                                               self.status['xquat'])])
-            force_error = self.status['contact_force'] - self.status['desired_force']
+            force = self.status['contact_force']
             # table = np.eye(3)
             table = np.array([[0.9986295, 0, -0.0523360],
                               [0, 1, 0],
                               [0.0523360, 0, 0.9986295]])
             xposture_error_table = (table.transpose() @ xposture_error.reshape((3, 2), order="F")).reshape(-1,
                                                                                                            order="F")
-            force_error_table = (table.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1, order="F")
+            force_table = (table.transpose() @ force.reshape((3, 2), order="F")).reshape(-1, order="F")
+            force_error_table = force_table - self.status['desired_force']
             # 运动状态的奖励
-            movement_reward = - np.sum(abs(xposture_error_table)[[0, 1, 2, 3, 4]])
+            movement_reward = - np.sum(abs(xposture_error_table)[[0, 1, 3, 4, 5]])
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_error_table))
             fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
 
-            reward = 5 * movement_reward + 0.05 * fext_reward + 1.
+            reward = 25 * movement_reward + 0.05 * fext_reward + 1.
 
         elif 'cabinet drawer open with plan' in self.task:
             xpos_error = self.status['desired_xpos'] - self.status['xpos']
