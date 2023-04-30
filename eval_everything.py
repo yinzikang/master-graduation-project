@@ -337,6 +337,24 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     plt.grid()
     if save_fig:
         plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(result_dict["desired_force"])
+    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    plt.title('desired force')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(result_dict["contact_force"] -result_dict["desired_force"])
+    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    plt.title('force error')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
     #
     # i += 1
     # plt.figure(i)
@@ -363,14 +381,21 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     if save_fig:
         plt.savefig(logger_path + '/' + plt.gca().get_title())
 
-    # i += 1
-    # plt.figure(i)
-    # plt.plot(result_dict["desired_force"])
-    # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    # plt.title('desired force')
-    # plt.grid()
-    # if save_fig:
-    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    table = np.array([[0.9986295, 0, -0.0523360],
+                      [0, 1, 0],
+                      [0.0523360, 0, 0.9986295]])
+    desired_force_table = np.empty_like(result_dict["desired_force"])
+    for k in range(desired_force_table.shape[0]):
+        desired_force_table[k] = (table.transpose() @ result_dict["desired_force"][k].reshape((3, 2), order="F")).\
+            reshape(-1, order="F")
+    i += 1
+    plt.figure(i)
+    plt.plot(desired_force_table)
+    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    plt.title('desired force table')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
 
     # delta_pos = result_dict["xpos"] - result_dict["desired_xpos"]
     # f = result_dict["contact_force"][:, :3]

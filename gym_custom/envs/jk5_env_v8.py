@@ -449,20 +449,26 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             reward = 5 * movement_reward + 0.05 * fext_reward + 1.
 
         elif 'cabinet drawer open with plan' in self.task:
-            xpos_error = self.status['desired_xpos'] - self.status['xpos']
-            contact_force = self.status['contact_force']
+            xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
+                                             orientation_error_quat_with_quat(self.status['desired_xquat'],
+                                                                              self.status['xquat'])])
+            force_error = self.status['contact_force'] - self.status['desired_force']
             # table = np.eye(3)
-            table = np.array([[0.9986295, 0, -0.0523360],
-                              [0, 1, 0],
-                              [0.0523360, 0, 0.9986295]])
-            contact_force_table = (table.transpose() @ contact_force.reshape((3, 2), order="F")).reshape(-1, order="F")
-            # 优化抽屉移动方向外所有力，要是力距离期望力较近则进行额外奖励
-            fext_reward = - np.sum(abs(contact_force_table - self.desired_force_list[self.current_step])[1:])
-            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
-            # 运动状态的奖励，对应抽屉打开完成度
-            movement_reward = - abs(table.transpose() @ xpos_error)[0]
+            table_rotation = np.array([[0.9986295, 0, -0.0523360],
+                                       [0, 1, 0],
+                                       [0.0523360, 0, 0.9986295]])
+            xposture_error_table = (table_rotation.transpose() @ xposture_error.reshape((3, 2), order="F")).reshape(-1,
+                                                                                                                    order="F")
+            force_error_table = (table_rotation.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1,
+                                                                                                              order="F")
 
-            reward = 25 * movement_reward + 0.05 * fext_reward + 1.
+            # 运动状态的奖励
+            movement_reward = - np.sum(abs(xposture_error_table)[0])
+            # 要是力距离期望力较近则进行额外奖励
+            fext_reward = - np.sum(abs(force_error_table)[1:])
+            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+
+            reward = 5 * movement_reward + 0.05 * fext_reward + 1.
 
         else:
             tau = self.status['tau']

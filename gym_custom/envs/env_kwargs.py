@@ -675,7 +675,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
                                                                                                time_whole,
                                                                                                time_acceleration,
                                                                                                robot_frequency)
-        desired_force_list = np.array([[30*np.cos(np.pi/60), 0, -30*np.sin(np.pi/60), 0, 0, 0]], dtype=np.float64).\
+        desired_force_list = np.array([[10*np.cos(np.pi/60), 0, 10*np.sin(np.pi/60), 0, 0, 0]], dtype=np.float64).\
             repeat(step_num, axis=0)
         # 阻抗参数
         wn = 20
