@@ -93,9 +93,9 @@ class Jk5StickRobot:
         elif 'cabinet drawer' in self.task:  # 执行器中心
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0 - 0.004, 0.169 + 0.011))))
-        elif self.task == 'cabinet door open' or self.task == 'cabinet door close':  # 储物柜门任务ee长0.06
+        elif 'cabinet door' in self.task:  # 储物柜门任务ee长0.06
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
-                                       kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
+                                       kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0 - 0.004, 0.169 + 0.011))))
         elif self.task == 'fig_plot':  # 储物柜桌面任务ee长0.169
             rbt.addSegment(kdl.Segment("end-effector", kdl.Joint("ee_joint", kdl.Joint.Fixed),
                                        kdl.Frame(kdl.Rotation.Identity(), kdl.Vector(0, 0, 0.169))))
@@ -294,14 +294,32 @@ class Jk5StickRobotWithController(Jk5StickRobot):
 
         if "cabinet drawer open" in self.task:
             pos1 = np.array(self.data.body("dummy_body").xpos)
-            pos2 = np.array(self.data.body("drawer handle").xpos)
+            pos2 = np.array(self.data.body("drawer handle part2").xpos)
             mat1 = np.array(self.data.body("dummy_body").xmat).reshape(3, 3)
             pos_delta2 = np.matmul(np.linalg.inv(mat1), (pos2 - pos1).reshape(3, 1)).reshape(-1)
             self.mjc_model.equality('robot2drawer').data = np.hstack((pos_delta2, np.zeros(4)))
             self.mjc_model.equality('robot2drawer').active = True
 
-        if self.task == "cabinet drawer close":
+        if "cabinet drawer close" in self.task:
             self.data.joint('drawer joint').qpos = 0.3
+
+        if "cabinet door open" in self.task:
+            pos1 = np.array(self.data.body("dummy_body").xpos)
+            pos2 = np.array(self.data.body("door handle part2").xpos)
+            mat1 = np.array(self.data.body("dummy_body").xmat).reshape(3, 3)
+            pos_delta2 = np.matmul(np.linalg.inv(mat1), (pos2 - pos1).reshape(3, 1)).reshape(-1)
+            self.mjc_model.equality('robot2door').data = np.hstack((pos_delta2, np.zeros(4)))
+            self.mjc_model.equality('robot2door').active = True
+
+        if "cabinet door close" in self.task:
+            self.data.joint('door joint').qpos = np.pi / 2
+            mp.mj_forward(self.mjc_model, self.data)
+            pos1 = np.array(self.data.body("dummy_body").xpos)
+            pos2 = np.array(self.data.body("door handle part2").xpos)
+            mat1 = np.array(self.data.body("dummy_body").xmat).reshape(3, 3)
+            pos_delta2 = np.matmul(np.linalg.inv(mat1), (pos2 - pos1).reshape(3, 1)).reshape(-1)
+            self.mjc_model.equality('robot2door').data = np.hstack((pos_delta2, np.zeros(4)))
+            self.mjc_model.equality('robot2door').active = True
 
         mp.mj_forward(self.mjc_model, self.data)
 
@@ -353,15 +371,15 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         if not hasattr(self, 'viewer'):
             self.viewer_init(pause_start, view_force)
         self.viewer.render()
-        k = self.status["controller_parameter"]["K"][:3] / 50000
-        R = self.status["controller_parameter"]["SM"]
-        self.viewer.add_marker(pos=self.status["xpos"],  # Position
-                               mat=R,
-                               label=" ",  # Text beside the marker
-                               type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
-                               size=(k[0], k[1], k[2]),  # Size of the marker
-                               rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
-                               emission=1)  # RGBA of the marker
+        # k = self.status["controller_parameter"]["K"][:3] / 50000
+        # R = self.status["controller_parameter"]["SM"]
+        # self.viewer.add_marker(pos=self.status["xpos"],  # Position
+        #                        mat=R,
+        #                        label=" ",  # Text beside the marker
+        #                        type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
+        #                        size=(k[0], k[1], k[2]),  # Size of the marker
+        #                        rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
+        #                        emission=1)  # RGBA of the marker
 
 
 # 机器人变阻抗控制
@@ -472,7 +490,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             penalty = - 10 if failure else 0
             reward = 0 * movement_reward + 0.05 * fext_reward + 1 * penalty + 1.
 
-        else:
+        elif 'cabinet door open with plan' in self.task:
             tau = self.status['tau']
             tau_reward = - np.sqrt(np.sum(tau ** 2))
             ## 任务结束的奖励与惩罚
@@ -746,6 +764,14 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
                                           0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
         elif 'cabinet drawer open with plan' in kwargs['task']:
+            self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+                                          0.001, 0.001, 0.001,  # 位置变化限制
+                                          1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
+                                          0.01,
+                                          1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
+                                          0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
+
+        elif 'cabinet door open with plan' in kwargs['task']:
             self.action_limit = np.array([100, 100, 100, 10, 10, 10,
                                           0.001, 0.001, 0.001,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化

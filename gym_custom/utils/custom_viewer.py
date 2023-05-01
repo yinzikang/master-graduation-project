@@ -20,6 +20,7 @@ class EnvViewer(MujocoViewer):
         # self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTPOINT] = view_force
         self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTFORCE] = view_force
         self.vopt.flags[mp.mjtVisFlag.mjVIS_CONTACTSPLIT] = view_force
+        self.vopt.flags[mp.mjtVisFlag.mjVIS_CONSTRAINT] = False
         self._paused = pause_start
 
     def viewer_render(self):
