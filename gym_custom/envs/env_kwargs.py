@@ -834,7 +834,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 阻抗参数
         wn = 20
         damping_ratio = np.sqrt(2)
-        K = np.array([1000, 1000, 1000, 1000, 1000, 1000], dtype=np.float64)
+        K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         M = K / (wn * wn)
         SM = np.eye(3, dtype=np.float64)
         B = 2 * damping_ratio * np.sqrt(M * K)

@@ -61,7 +61,7 @@
                 <inertial pos="0.0296816 -0.00152345 0" quat="0.701072 0 0 0.713091"
                           mass="2.43455" diaginertia="0.0913751 0.0521615 0.043714"/>
                 <joint name="door joint" pos="0 0.19 0" axis="0 0 1" range="0.0 1.5707" limited="true"
-                       damping="1" frictionloss="1"/>
+                       damping="5" frictionloss="5"/>
             </body>
             <!--无关接触-->
             <body name="bottem board" pos="0 0 0.025">

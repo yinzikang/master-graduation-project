@@ -486,17 +486,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_error_table)[1:])
             fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
-            # 撞墙的惩罚
-            drawer_joint_pos = self.data.qpos[-2]
-            if drawer_joint_pos > 0.295:
-                if drawer_joint_pos < 0.3:
-                    drawer_reward = 1
-                else:
-                    drawer_reward = -1
-            else:
-                drawer_reward = 0
+            # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
+            drawer_reward = 0
+            if success:
+                drawer_reward = self.data.qpos[-2] / 0.3
+            if failure:
+                drawer_reward = -1
 
-            reward = 0 * movement_reward + 0.05 * fext_reward + 0.5 * drawer_reward + 1.
+            reward = 0 * movement_reward + 0.05 * fext_reward + 2 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
             tau = self.status['tau']
@@ -622,7 +619,7 @@ class TrainEnvVariableStiffness(TrainEnvBase):
                                          desired_force=self.status["desired_force"].copy(),
                                          tau=self.status["tau"].copy())
 
-            success, error_K, error_force = False, False, False
+            success, error_K, error_force, error_joint_pos = False, False, False, False
             # 时间约束：到达最大时间，视为done
             if self.current_step + 1 == self.step_num:
                 success = True
@@ -641,7 +638,29 @@ class TrainEnvVariableStiffness(TrainEnvBase):
                 other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
                     'terminal info'] = False, False, 'error force'
                 # print(self.status['contact_force'])
-            failure = error_K or error_force
+            # 完成度约束
+            if 'cabinet drawer open' in self.task:
+                if self.data.qpos[-2] > 0.3:
+                    error_joint_pos = True
+                    other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                        'terminal info'] = False, False, 'error joint pos'
+            if 'cabinet drawer open' in self.task:
+                if self.data.qpos[-2] < 0:
+                    error_joint_pos = True
+                    other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                        'terminal info'] = False, False, 'error joint pos'
+            if 'cabinet door close' in self.task:
+                if self.data.qpos[-1] > np.pi / 2:
+                    error_joint_pos = True
+                    other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                        'terminal info'] = False, False, 'error joint pos'
+            if 'cabinet door close' in self.task:
+                if self.data.qpos[-1] < 0:
+                    error_joint_pos = True
+                    other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                        'terminal info'] = False, False, 'error joint pos'
+
+            failure = error_K or error_force or error_joint_pos
             done = success or failure
 
             # 获得奖励
