@@ -484,7 +484,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             movement_reward = - np.sum(abs(xposture_error_table)[0])
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_table)[1:])
-            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+            fext_reward = fext_reward + 10 if fext_reward > -1.5 else fext_reward
             # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
             drawer_reward = 0
             if success:
@@ -492,7 +492,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             if failure:
                 drawer_reward = -1
 
-            reward = 0 * movement_reward + 0.05 * fext_reward + 2 * drawer_reward + 1.
+            reward = 0 * movement_reward + 0.05 * fext_reward + 3 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
             cabinet_pos = np.array([0.8, -0.2, 0.3])
