@@ -45,7 +45,7 @@ def eval_robot(buffer, view_flag=True, save_fig=False, logger_path=None):
     for j in range(len(buffer["xquat"])):
         xpos_table = np.linalg.inv(table_rotation) @ (buffer["xpos"][j] - table_position)
         dpos_table = np.linalg.inv(table_rotation) @ (buffer["desired_xpos"][j] - table_position)
-        xpos_error_table_buffer.append(xpos_table-dpos_table)
+        xpos_error_table_buffer.append(xpos_table - dpos_table)
     i += 1
     plt.figure(i)
     plt.plot(xpos_error_table_buffer)
@@ -168,7 +168,8 @@ def eval_robot(buffer, view_flag=True, save_fig=False, logger_path=None):
                                [0.0523360, 0, 0.9986295]])
     contact_force_table = np.empty_like(buffer["contact_force"])
     for k in range(contact_force_table.shape[0]):
-        contact_force_table[k] = (np.linalg.inv(table_rotation) @ buffer["contact_force"][k].reshape((3, 2), order="F")).\
+        contact_force_table[k] = (
+                np.linalg.inv(table_rotation) @ buffer["contact_force"][k].reshape((3, 2), order="F")). \
             reshape(-1, order="F")
     i += 1
     plt.figure(i)
@@ -223,21 +224,103 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # if 'cabinet surface' in env.task or 'cabinet drawer' in env.task:
+    #     table = np.array([[0.9986295, 0, -0.0523360],
+    #                       [0, 1, 0],
+    #                       [0.0523360, 0, 0.9986295]])
+    #     xpos_error_table_buffer = []
+    #     for j in range(len(result_dict["xquat"])):
+    #         xpos_error_table_buffer.append(table.transpose() @ (result_dict["xpos"] - result_dict["desired_xpos"])[j])
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(xpos_error_table_buffer)
+    #     plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
+    #     plt.title('xpos error table')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
 
-    table = np.array([[0.9986295, 0, -0.0523360],
-                      [0, 1, 0],
-                      [0.0523360, 0, 0.9986295]])
-    xpos_error_table_buffer = []
-    for j in range(len(result_dict["xquat"])):
-        xpos_error_table_buffer.append(table.transpose() @ (result_dict["xpos"] - result_dict["desired_xpos"])[j])
-    i += 1
-    plt.figure(i)
-    plt.plot(xpos_error_table_buffer)
-    plt.legend(['x', 'y', 'z', 'dx', 'dy', 'dz'])
-    plt.title('xpos error table')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
+    if 'cabinet door' in env.task:
+        cabinet_pos = np.array([0.8, -0.2, 0.3])
+        r_bias = np.array([-0.025, 0.34, 0])
+        angle_init = np.arctan(np.abs(r_bias[0] / r_bias[1]))
+        radius = np.linalg.norm(r_bias)
+        center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])
+        rbt_tool = np.array([-0.011, -0.004, 0])
+        real_r_bias_buffer = []
+        real_radius_buffer = []
+        real_angle_buffer = []
+        desired_r_bias_buffer = []
+        desired_radius_buffer = []
+        desired_angle_buffer = []
+        for j in range(len(result_dict["xpos"])):
+            real_r_bias_buffer.append(result_dict["xpos"][j] - rbt_tool - center)
+            real_radius_buffer.append(np.linalg.norm(real_r_bias_buffer[j]))
+            real_angle_buffer.append(np.arctan(np.abs(real_r_bias_buffer[j][0] /
+                                                      real_r_bias_buffer[j][1])))
+
+            desired_r_bias_buffer.append(result_dict["desired_xpos"][j] - rbt_tool - center)
+            desired_radius_buffer.append(np.linalg.norm(desired_r_bias_buffer[j]))
+            desired_angle_buffer.append(np.arctan(np.abs(desired_r_bias_buffer[j][0] /
+                                                         desired_r_bias_buffer[j][1])))
+        real_r_bias_buffer = np.array(real_r_bias_buffer)
+        real_radius_buffer = np.array(real_radius_buffer)
+        real_angle_buffer = np.array(real_angle_buffer)
+        desired_r_bias_buffer = np.array(desired_r_bias_buffer)
+        desired_radius_buffer = np.array(desired_radius_buffer)
+        desired_angle_buffer = np.array(desired_angle_buffer)
+
+        i += 1
+        plt.figure(i)
+        plt.plot(result_dict["xpos"][:, 0], result_dict["xpos"][:, 1])
+        plt.plot(result_dict["desired_xpos"][:, 0], result_dict["desired_xpos"][:, 1])
+        plt.legend(['real traj', 'desired traj'])
+        plt.title('traj')
+        plt.grid()
+        plt.axis('equal')
+        if save_fig:
+            plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+        i += 1
+        plt.figure(i)
+        plt.plot(real_radius_buffer)
+        plt.plot(desired_radius_buffer)
+        plt.axhline(radius)
+        plt.legend(['real r', 'desired r', 'door r'])
+        plt.title('radius')
+        plt.grid()
+        if save_fig:
+            plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+        i += 1
+        plt.figure(i)
+        plt.plot(real_radius_buffer - radius)
+        plt.plot(desired_radius_buffer - radius)
+        plt.legend(['real r error', 'desired r error'])
+        plt.title('radius error')
+        plt.grid()
+        if save_fig:
+            plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+        i += 1
+        plt.figure(i)
+        plt.plot(real_angle_buffer)
+        plt.plot(desired_angle_buffer)
+        plt.legend(['real angle', 'desired angle'])
+        plt.title('angle')
+        plt.grid()
+        if save_fig:
+            plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+        i += 1
+        plt.figure(i)
+        plt.plot(real_angle_buffer - desired_angle_buffer)
+        plt.legend(['angle error'])
+        plt.title('angle error')
+        plt.grid()
+        if save_fig:
+            plt.savefig(logger_path + '/' + plt.gca().get_title())
 
     # i += 1
     # plt.figure(i)
@@ -278,20 +361,20 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    orientation_error_buffer = []
-    for j in range(len(result_dict["xquat"])):
-        orientation_error_buffer.append(
-            orientation_error_quat_with_quat(result_dict["desired_xquat"][j], result_dict["xquat"][j]))
-    plt.plot(orientation_error_buffer)
-    plt.legend(['x', 'y', 'z'])
-    plt.title('compare_orientation_error')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
+    #
+    # i += 1
+    # plt.figure(i)
+    # orientation_error_buffer = []
+    # for j in range(len(result_dict["xquat"])):
+    #     orientation_error_buffer.append(
+    #         orientation_error_quat_with_quat(result_dict["desired_xquat"][j], result_dict["xquat"][j]))
+    # plt.plot(orientation_error_buffer)
+    # plt.legend(['x', 'y', 'z'])
+    # plt.title('compare_orientation_error')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
     # i += 1
     # plt.figure(i)
     # plt.plot(result_dict["K"])
@@ -300,61 +383,61 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    if 'delta_pos' in result_dict:
-        i += 1
-        plt.figure(i)
-        plt.plot(result_dict["delta_pos"])
-        plt.legend(['x', 'y', 'z'])
-        plt.title('delta_pos')
-        plt.grid()
-        if save_fig:
-            plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-        i += 1
-        plt.figure(i)
-        plt.plot(result_dict["delta_mat"].reshape((result_dict["delta_mat"].shape[0], -1)))
-        plt.legend(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
-        plt.title('delta_mat')
-        plt.grid()
-        if save_fig:
-            plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-        i += 1
-        plt.figure(i)
-        plt.plot(result_dict["delta_quat"])
-        plt.legend(['x', 'y', 'z', 'w'])
-        plt.title('delta_quat')
-        plt.grid()
-        if save_fig:
-            plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["contact_force"])
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('contact force')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["desired_force"])
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('desired force')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["contact_force"] -result_dict["desired_force"])
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('force error')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # if 'delta_pos' in result_dict:
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(result_dict["delta_pos"])
+    #     plt.legend(['x', 'y', 'z'])
+    #     plt.title('delta_pos')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(result_dict["delta_mat"].reshape((result_dict["delta_mat"].shape[0], -1)))
+    #     plt.legend(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    #     plt.title('delta_mat')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(result_dict["delta_quat"])
+    #     plt.legend(['x', 'y', 'z', 'w'])
+    #     plt.title('delta_quat')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["contact_force"])
+    # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    # plt.title('contact force')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["desired_force"])
+    # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    # plt.title('desired force')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["contact_force"] - result_dict["desired_force"])
+    # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    # plt.title('force error')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
     #
     # i += 1
     # plt.figure(i)
@@ -364,57 +447,78 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # if 'cabinet surface' in env.task or 'cabinet drawer' in env.task:
+    #     table = np.array([[0.9986295, 0, -0.0523360],
+    #                       [0, 1, 0],
+    #                       [0.0523360, 0, 0.9986295]])
+    #     contact_force_table = np.empty_like(result_dict["contact_force"])
+    #     desired_force_table = np.empty_like(result_dict["desired_force"])
+    #     force_error_table = np.empty_like(result_dict["desired_force"])
+    #     for k in range(contact_force_table.shape[0]):
+    #         contact_force_table[k] = (table.transpose() @ result_dict["contact_force"][k].reshape((3, 2), order="F")). \
+    #             reshape(-1, order="F")
+    #         desired_force_table[k] = (table.transpose() @ result_dict["desired_force"][k].reshape((3, 2), order="F")). \
+    #             reshape(-1, order="F")
+    #         force_error_table[k] = contact_force_table[k] - desired_force_table[k]
+    #
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(contact_force_table)
+    #     plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    #     plt.title('contact force table')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(desired_force_table)
+    #     plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    #     plt.title('desired force table')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    #     i += 1
+    #     plt.figure(i)
+    #     plt.plot(force_error_table)
+    #     plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    #     plt.title('force error table')
+    #     plt.grid()
+    #     if save_fig:
+    #         plt.savefig(logger_path + '/' + plt.gca().get_title())
 
-    table = np.array([[0.9986295, 0, -0.0523360],
-                      [0, 1, 0],
-                      [0.0523360, 0, 0.9986295]])
-    contact_force_table = np.empty_like(result_dict["contact_force"])
-    for k in range(contact_force_table.shape[0]):
-        contact_force_table[k] = (table.transpose() @ result_dict["contact_force"][k].reshape((3, 2), order="F")).\
-            reshape(-1, order="F")
-    i += 1
-    plt.figure(i)
-    plt.plot(contact_force_table)
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('contact force table')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
+    if 'cabinet door' in env.task:
+        cabinet_pos = np.array([0.8, -0.2, 0.3])
+        r_bias = np.array([-0.025, 0.34, 0])
+        angle_init = np.arctan(np.abs(r_bias[0] / r_bias[1]))
+        radius = np.linalg.norm(r_bias)
+        center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])
+        rbt_tool = np.array([-0.011, -0.004, 0])
+        real_force_door_buffer = []
+        for j in range(len(result_dict["xpos"])):
+            real_r_bias = result_dict["xpos"][j] - rbt_tool - center
+            real_angle = np.arctan(np.abs(real_r_bias[0] / real_r_bias[1]))
+            c = np.cos(np.pi / 2 - real_angle)
+            s = np.sin(np.pi / 2 - real_angle)
+            real_rotation = np.array([[c, s, 0],
+                                      [-s, c, 0],
+                                      [0, 0, 1]])
+            real_force_door_buffer.append((real_rotation.transpose() @
+                                           result_dict['contact_force'][j].reshape((3, 2),
+                                                                                   order="F")).reshape(-1, order="F"))
+        real_force_door_buffer = np.array(real_force_door_buffer)
 
-    table = np.array([[0.9986295, 0, -0.0523360],
-                      [0, 1, 0],
-                      [0.0523360, 0, 0.9986295]])
-    desired_force_table = np.empty_like(result_dict["desired_force"])
-    for k in range(desired_force_table.shape[0]):
-        desired_force_table[k] = (table.transpose() @ result_dict["desired_force"][k].reshape((3, 2), order="F")).\
-            reshape(-1, order="F")
-    i += 1
-    plt.figure(i)
-    plt.plot(desired_force_table)
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('desired force table')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    table = np.array([[0.9986295, 0, -0.0523360],
-                      [0, 1, 0],
-                      [0.0523360, 0, 0.9986295]])
-    force_error_table = np.empty_like(result_dict["desired_force"])
-    for k in range(desired_force_table.shape[0]):
-        desired_force_table[k] = (table.transpose() @ result_dict["desired_force"][k].reshape((3, 2), order="F")).\
-            reshape(-1, order="F")
-        contact_force_table[k] = (table.transpose() @ result_dict["contact_force"][k].reshape((3, 2), order="F")).\
-            reshape(-1, order="F")
-        force_error_table[k] = contact_force_table[k] - desired_force_table[k]
-    i += 1
-    plt.figure(i)
-    plt.plot(force_error_table)
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('force error table')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
+        i += 1
+        plt.figure(i)
+        plt.plot(real_force_door_buffer)
+        plt.axhline(radius)
+        plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+        plt.title('force door')
+        plt.grid()
+        if save_fig:
+            plt.savefig(logger_path + '/' + plt.gca().get_title())
 
     # delta_pos = result_dict["xpos"] - result_dict["desired_xpos"]
     # f = result_dict["contact_force"][:, :3]
@@ -448,7 +552,7 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-    #
+
     # i += 1
     # plt.figure(i)
     # plt.plot(result_dict["tau"])
@@ -466,7 +570,7 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-
+    #
     # i += 1
     # plt.figure(i)
     # plt.plot(result_dict["observation"][:, -1, 3:7])
@@ -493,50 +597,50 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["action"][:, :6])
-    plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
-    plt.title('action k')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["action"][:, 6:9])
-    plt.legend(['x', 'y', 'z'])
-    plt.title('action xpos')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["action"][:, 9:13])
-    plt.legend(['x', 'y', 'z', 'w'])
-    plt.title('action xquat')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["action"][:, 13:17])
-    plt.legend(['x', 'y', 'z', 'w'])
-    plt.title('k quat')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["reward"])
-    plt.title('reward')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["action"][:, :6])
+    # plt.legend(['x', 'y', 'z', 'rx', 'ry', 'rz'])
+    # plt.title('action k')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["action"][:, 6:9])
+    # plt.legend(['x', 'y', 'z'])
+    # plt.title('action xpos')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["action"][:, 9:13])
+    # plt.legend(['x', 'y', 'z', 'w'])
+    # plt.title('action xquat')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["action"][:, 13:17])
+    # plt.legend(['x', 'y', 'z', 'w'])
+    # plt.title('k quat')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["reward"])
+    # plt.title('reward')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
 
     if view_flag:
         plt.show()

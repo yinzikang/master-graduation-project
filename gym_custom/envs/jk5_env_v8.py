@@ -371,15 +371,15 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         if not hasattr(self, 'viewer'):
             self.viewer_init(pause_start, view_force)
         self.viewer.render()
-        # k = self.status["controller_parameter"]["K"][:3] / 50000
-        # R = self.status["controller_parameter"]["SM"]
-        # self.viewer.add_marker(pos=self.status["xpos"],  # Position
-        #                        mat=R,
-        #                        label=" ",  # Text beside the marker
-        #                        type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
-        #                        size=(k[0], k[1], k[2]),  # Size of the marker
-        #                        rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
-        #                        emission=1)  # RGBA of the marker
+        k = self.status["controller_parameter"]["K"][:3] / 50000
+        R = self.status["controller_parameter"]["SM"]
+        self.viewer.add_marker(pos=self.status["xpos"],  # Position
+                               mat=R,
+                               label=" ",  # Text beside the marker
+                               type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
+                               size=(k[0], k[1], k[2]),  # Size of the marker
+                               rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
+                               emission=1)  # RGBA of the marker
 
 
 # 机器人变阻抗控制
@@ -454,10 +454,10 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             table_rotation = np.array([[0.9986295, 0, -0.0523360],
                                        [0, 1, 0],
                                        [0.0523360, 0, 0.9986295]])
-            xposture_error_table = (table_rotation.transpose() @ xposture_error.reshape((3, 2), order="F")).reshape(-1,
-                                                                                                                    order="F")
-            force_error_table = (table_rotation.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1,
-                                                                                                              order="F")
+            xposture_error_table = (table_rotation.transpose() @
+                                    xposture_error.reshape((3, 2), order="F")).reshape(-1, order="F")
+            force_error_table = (table_rotation.transpose() @
+                                 force_error.reshape((3, 2), order="F")).reshape(-1, order="F")
 
             # 运动状态的奖励
             movement_reward = - np.sum(abs(xposture_error_table)[[0, 1, 3, 4, 5]])
@@ -471,20 +471,19 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
                                              orientation_error_quat_with_quat(self.status['desired_xquat'],
                                                                               self.status['xquat'])])
-            force_error = self.status['contact_force'] - self.status['desired_force']
             # table = np.eye(3)
             table_rotation = np.array([[0.9986295, 0, -0.0523360],
                                        [0, 1, 0],
                                        [0.0523360, 0, 0.9986295]])
-            xposture_error_table = (table_rotation.transpose() @ xposture_error.reshape((3, 2), order="F")).reshape(-1,
-                                                                                                                    order="F")
-            force_error_table = (table_rotation.transpose() @ force_error.reshape((3, 2), order="F")).reshape(-1,
-                                                                                                              order="F")
+            xposture_error_table = (table_rotation.transpose() @
+                                    xposture_error.reshape((3, 2), order="F")).reshape(-1, order="F")
+            force_table = (table_rotation.transpose() @
+                           self.status['contact_force'].reshape((3, 2), order="F")).reshape(-1, order="F")
 
             # 运动状态的奖励
             movement_reward = - np.sum(abs(xposture_error_table)[0])
             # 要是力距离期望力较近则进行额外奖励
-            fext_reward = - np.sum(abs(force_error_table)[1:])
+            fext_reward = - np.sum(abs(force_table)[1:])
             fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
             # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
             drawer_reward = 0
@@ -496,19 +495,33 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             reward = 0 * movement_reward + 0.05 * fext_reward + 2 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
-            tau = self.status['tau']
-            tau_reward = - np.sqrt(np.sum(tau ** 2))
-            ## 任务结束的奖励与惩罚
-            # completion_ratio_penalty = (table.transpose() @ xpos_error)[0] if done else 0
-            early_stop_penalty = (self.step_num - self.current_step) / self.step_num if done else 0
-            error_k_penalty = -1 if failure else 0
-            ## 接触力的奖励与惩罚
-            # zero_force_penalty = -1 if np.max(np.abs(contact_force)) < 1 else 0
-            # massive_force_penalty = -1 if np.max(np.abs(contact_force)) > 50 else 0
+            cabinet_pos = np.array([0.8, -0.2, 0.3])
+            radius = np.sqrt(0.34 ** 2 + 0.025 ** 2)
+            angle_bias = np.arctan(np.abs(0.025 / 0.34))
+            center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])
+            door_angle = self.data.qpos[-1]
+            c = np.cos(np.pi / 2 - door_angle - angle_bias)
+            s = np.sin(np.pi / 2 - door_angle - angle_bias)
+            door_rotation = np.array([[c, s, 0],
+                                      [-s, c, 0],
+                                      [0, 0, 1]])
+            radius_error = np.linalg.norm(self.status['xpos'] - center) - radius
+            force_door = (door_rotation.transpose() @
+                          self.status['contact_force'].reshape((3, 2), order="F")).reshape(-1, order="F")
 
-            # reward = 0 * movement_reward + 0.05 * fext_reward + 0 * tau_reward + \
-            #           1 * error_k_penalty + 1 * early_stop_penalty + \
-            #           0.5 * zero_force_penalty + 0 * massive_force_penalty
+            # 运动状态的奖励
+            movement_reward = - np.abs(radius_error)
+            # 要是力距离期望力较近则进行额外奖励
+            fext_reward = - np.sum(abs(force_door)[[0, 2, 3, 4, 5]])
+            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+            # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
+            door_reward = 0
+            if success:
+                door_reward = door_angle / np.pi * 2
+            if failure:
+                door_reward = -1
+
+            reward = 0 * movement_reward + 0.05 * fext_reward + 2 * door_reward + 1.
 
         return reward
 
