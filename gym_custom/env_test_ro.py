@@ -17,9 +17,9 @@ from eval_everything import eval_robot
 import numpy as np
 
 # test_name = 'cabinet surface with plan v7'
-# test_name = 'cabinet drawer open with plan'
+test_name = 'cabinet drawer open with plan'
 # test_name = 'cabinet door open with plan'
-test_name = 'cabinet door open with plan test'
+# test_name = 'cabinet door open with plan test'
 test_times = 1
 plot_flag = True
 

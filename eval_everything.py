@@ -703,32 +703,32 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     if save_fig:
         plt.savefig(logger_path + '/' + plt.gca().get_title())
 
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["qpos"])
-    plt.legend(['1', '2', '3', '4', '5', '6'])
-    plt.title('qpos')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["qvel"])
-    plt.legend(['1', '2', '3', '4', '5', '6'])
-    plt.title('qvel')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    i += 1
-    plt.figure(i)
-    plt.plot(result_dict["tau"])
-    plt.legend(['1', '2', '3', '4', '5', '6'])
-    plt.title('tau')
-    plt.grid()
-    if save_fig:
-        plt.savefig(logger_path + '/' + plt.gca().get_title())
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["qpos"])
+    # plt.legend(['1', '2', '3', '4', '5', '6'])
+    # plt.title('qpos')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["qvel"])
+    # plt.legend(['1', '2', '3', '4', '5', '6'])
+    # plt.title('qvel')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    #
+    # i += 1
+    # plt.figure(i)
+    # plt.plot(result_dict["tau"])
+    # plt.legend(['1', '2', '3', '4', '5', '6'])
+    # plt.title('tau')
+    # plt.grid()
+    # if save_fig:
+    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
 
     i += 1
     plt.figure(i)
