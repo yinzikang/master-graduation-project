@@ -500,15 +500,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             angle_bias = np.arctan(np.abs(0.025 / 0.34))
             center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])
             door_angle = self.data.qpos[-1]
-            c = np.cos(np.pi / 2 - door_angle - angle_bias)
-            s = np.sin(np.pi / 2 - door_angle - angle_bias)
-            door_rotation = np.array([[c, s, 0],
-                                      [-s, c, 0],
+            c = np.cos(angle_bias + door_angle - np.pi / 2)
+            s = np.sin(angle_bias + door_angle - np.pi / 2)
+            door_rotation = np.array([[c, -s, 0],
+                                      [s, c, 0],
                                       [0, 0, 1]])
             radius_error = np.linalg.norm(self.status['xpos'] - center) - radius
             force_door = (door_rotation.transpose() @
                           self.status['contact_force'].reshape((3, 2), order="F")).reshape(-1, order="F")
-
             # 运动状态的奖励
             movement_reward = - np.abs(radius_error)
             # 要是力距离期望力较近则进行额外奖励
