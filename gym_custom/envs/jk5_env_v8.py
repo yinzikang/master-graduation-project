@@ -812,11 +812,11 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
 
         elif 'cabinet door open with plan' in kwargs['task']:
             self.action_limit = np.array([100, 100, 100, 10, 10, 10,
-                                          0.001, 0.001, 0.001,  # 位置变化限制
+                                          0.002, 0.002, 0.002,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                           0.01,
                                           1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
-                                          0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
+                                          150 / 180 * np.pi / 40], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
     def step(self, action):
         """
@@ -916,6 +916,136 @@ class TrainEnvVariableStiffnessAndPostureAndSM(TrainEnvBase):
         return self.get_observation(), reward, done, other_info
 
 
+class TrainEnvVariableStiffnessAndPostureAndSM_v2(TrainEnvBase):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.action_num = 6 + 3 + 4 + 4  # 动作数：刚度椭圆轴变化量+位姿变化量+刚度椭圆姿态变化量
+        self.action_space = spaces.Box(low=-1 * np.ones(self.action_num),
+                                       high=1 * np.ones(self.action_num),
+                                       dtype=np.float32)  # 连续动作空间
+        if 'cabinet surface with plan' in kwargs['task']:
+            self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+                                          0.001, 0.01, 0.001,  # 位置变化限制
+                                          1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
+                                          0.001,
+                                          1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
+                                          0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
+
+        elif 'cabinet drawer open with plan' in kwargs['task']:
+            self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+                                          0.001, 0.001, 0.001,  # 位置变化限制
+                                          1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
+                                          0.01,
+                                          1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
+                                          0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
+
+        elif 'cabinet door open with plan' in kwargs['task']:
+            self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+                                          0.002, 0.002, 0.002,  # 位置变化限制
+                                          1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
+                                          0.01,
+                                          1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
+                                          150 / 180 * np.pi / 40], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
+
+    def step(self, action):
+        """
+        运行动作，获得下一次观测
+        :param action:
+        :return:
+        """
+        # 其余状态的初始化
+        reward = 0
+        done = False
+        other_info = dict()
+        # 对多次执行机器人控制
+        sub_step = 0
+        action = self.action_limit * action
+        delta_K = action[:6] / self.sub_step_num
+        ddelta_pos, ddelta_direction, ddelta_angle = action[6:9] / self.sub_step_num, action[9:12] / np.linalg.norm(
+            action[9:12]), action[12] / self.sub_step_num
+        ddelta_mat = rotation_matrix(ddelta_angle, ddelta_direction)[:3, :3]
+        ddelta_quat = quaternion_about_axis(ddelta_angle, ddelta_direction)
+        ellipsoid_direction = action[13:16] / np.linalg.norm(action[13:16])
+        ellipsoid_delta_angle = action[16] / self.sub_step_num
+        ellipsoid_delta_mat = rotation_matrix(ellipsoid_delta_angle, ellipsoid_direction)[:3, :3]
+
+        for sub_step in range(self.sub_step_num):
+            # 刚度椭圆轴变化量，进行插值（每一次更新间不同，有叠加效果）
+            self.controller_parameter['K'] += delta_K
+            M = self.controller_parameter['K'] / (self.wn * self.wn)
+            self.controller_parameter['B'] = 2 * self.damping_ratio * np.sqrt(M * self.controller_parameter['K'])
+            self.controller_parameter['M'] = M
+            # 位姿变化量，进行叠加（每一次更新间不同，无叠加效果）
+            self.delta_pos += ddelta_pos
+            self.status['desired_xpos'] += self.delta_pos
+            self.delta_mat = ddelta_mat @ self.delta_mat
+            self.delta_quat = quaternion_multiply(ddelta_quat, self.delta_quat)
+            self.status['desired_xmat'] = self.delta_mat @ self.status['desired_xmat']
+            self.status['desired_xquat'] = quaternion_multiply(self.delta_quat, self.status['desired_xquat'])
+            # 刚度椭球姿态变化量
+            self.controller_parameter['SM'] = ellipsoid_delta_mat @ self.controller_parameter['SM']
+            # 可视化
+            if hasattr(self, 'viewer'):
+                self.render()
+            if hasattr(self, 'logger'):
+                self.logger.store_buffer(xpos=self.status["xpos"].copy(), xmat=self.status["xmat"].copy().reshape(-1),
+                                         xquat=self.status["xquat"].copy(), xvel=self.status["xvel"].copy(),
+                                         qpos=self.status["qpos"].copy(), qvel=self.status["qvel"].copy(),
+                                         contact_force=self.status["contact_force"].copy(),
+                                         contact_force_l=self.status["contact_force_l"].copy(),
+                                         nft_force=self.status["nft_force"].copy(),
+                                         K=self.controller_parameter['K'].copy(),
+                                         direction=self.controller_parameter['SM'].copy().reshape(-1),
+                                         desired_xpos=self.status["desired_xpos"].copy(),
+                                         desired_xmat=self.status["desired_xmat"].copy().reshape(-1),
+                                         desired_xquat=self.status["desired_xquat"].copy(),
+                                         desired_xvel=self.status["desired_xvel"].copy(),
+                                         desired_xacc=self.status["desired_xacc"].copy(),
+                                         desired_force=self.status["desired_force"].copy(),
+                                         delta_pos=self.status['delta_pos'].copy(),
+                                         delta_mat=self.status['delta_mat'].copy(),
+                                         delta_quat=self.status['delta_quat'].copy(),
+                                         tau=self.status["tau"].copy())
+
+            super().step()
+            success, error_K, error_force = False, False, False
+            # 时间约束：到达最大时间，视为done
+            if self.current_step + 1 == self.step_num:
+                success = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = True, True, 'success'
+            # 刚度约束：到达最大时间，视为done
+            if any(np.greater(self.controller_parameter['K'], self.max_K)) or \
+                    any(np.greater(self.min_K, self.controller_parameter['K'])):
+                error_K = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = False, False, 'error K'
+                # print(self.controller_parameter['K'])
+            # 接触力约束：超过范围，视为done
+            if any(np.greater(np.abs(self.status['contact_force']), self.max_force)):
+                error_force = True
+                other_info['is_success'], other_info["TimeLimit.truncated"], other_info[
+                    'terminal info'] = False, False, 'error force'
+                # print(self.status['contact_force'])
+            failure = error_K or error_force
+            done = success or failure
+            self.status.update(done=done, success=success, failure=failure)
+
+            # 获得奖励
+            reward += self.get_reward(done, success, failure)
+
+            if done:
+                break
+
+        reward = reward / (sub_step + 1)
+        if hasattr(self, 'logger'):
+            self.logger.store_buffer(action=action, reward=reward)
+            if done:
+                self.logger.dump_buffer()
+
+        return self.get_observation(), reward, done, other_info
+
+
 class VS(TrainEnvVariableStiffness):
     def __init__(self, task_name):
         super().__init__(**env_kwargs(task_name)[-1])
@@ -927,5 +1057,10 @@ class VSAP(TrainEnvVariableStiffnessAndPosture):
 
 
 class VSAPAM(TrainEnvVariableStiffnessAndPostureAndSM):
+    def __init__(self, task_name):
+        super().__init__(**env_kwargs(task_name)[-1])
+
+
+class VSAPAM_v2(TrainEnvVariableStiffnessAndPostureAndSM_v2):
     def __init__(self, task_name):
         super().__init__(**env_kwargs(task_name)[-1])

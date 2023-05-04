@@ -33,7 +33,7 @@ test_times = 1
 render_flag = False
 plot_fig = True
 save_fig = False
-zero_action_flag = False
+zero_action_flag = True
 
 for _ in range(test_times):
     env.reset()
