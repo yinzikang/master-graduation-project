@@ -984,6 +984,7 @@ class TrainEnvVariableStiffnessAndPostureAndSM_v2(TrainEnvBase):
             self.status['desired_xquat'] = quaternion_multiply(self.delta_quat, self.status['desired_xquat'])
             # 刚度椭球姿态变化量
             self.controller_parameter['SM'] = ellipsoid_delta_mat @ self.controller_parameter['SM']
+
             # 可视化
             if hasattr(self, 'viewer'):
                 self.render()

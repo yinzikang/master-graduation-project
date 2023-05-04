@@ -21,10 +21,10 @@ from gym_custom.envs.env_kwargs import env_kwargs
 from rnn_feature_extractor import LSTMFeatureExtractor
 from stable_baselines3.common.torch_layers import FlattenExtractor
 
-env_name = 'TrainEnvVariableStiffnessAndPostureAndSM-v8'
-# test_name = 'cabinet surface with plan v7'
+env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
+test_name = 'cabinet surface with plan v7'
 # test_name = 'cabinet drawer open with plan'
-test_name = 'cabinet door open with plan'
+# test_name = 'cabinet door open with plan'
 rl_name = 'PPO'
 time_name = time.strftime("%m-%d-%H-%M")
 path_name = 'train_results/' + test_name + '/' + rl_name + '/' + time_name + '/'
@@ -34,7 +34,7 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 
-total_timesteps = episode_length * env_num * 2 ** 8  # 11: 655_360, 12: 1310720, 13: 2621440
+total_timesteps = episode_length * env_num * 2 ** 10  # 11: 655_360, 12: 1310720, 13: 2621440
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,
                      features_extractor_kwargs=dict(features_dim=64, num_layers=2),
                      share_features_extractor=True,
