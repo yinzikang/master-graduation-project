@@ -25,6 +25,8 @@ env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 test_name = 'cabinet surface with plan v7'
 # test_name = 'cabinet drawer open with plan'
 # test_name = 'cabinet door open with plan'
+print(env_name)
+print(test_name)
 rl_name = 'PPO'
 time_name = time.strftime("%m-%d-%H-%M")
 path_name = 'train_results/' + test_name + '/' + rl_name + '/' + time_name + '/'
