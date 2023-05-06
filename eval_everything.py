@@ -65,13 +65,13 @@ def eval_robot(task, result_dict, view_flag=True, save_fig=False, logger_path=No
         desired_radius_buffer = []
         desired_angle_buffer = []
         for j in range(len(result_dict["xpos"])):
-            real_r_bias_buffer.append(result_dict["xpos"][j] - rbt_tool - center)
-            real_radius_buffer.append(np.linalg.norm(real_r_bias_buffer[j]))
-            real_angle_buffer.append(np.arccos(real_r_bias_buffer[j][1] / radius))
+            real_r_bias = result_dict["xpos"][j] - rbt_tool - center
+            real_radius_buffer.append(np.linalg.norm(real_r_bias))
+            real_angle_buffer.append(np.arctan2(-real_r_bias[0],real_r_bias[1]))
 
-            desired_r_bias_buffer.append(result_dict["desired_xpos"][j] - rbt_tool - center)
-            desired_radius_buffer.append(np.linalg.norm(desired_r_bias_buffer[j]))
-            desired_angle_buffer.append(np.arccos(desired_r_bias_buffer[j][1] / radius))
+            desired_r_bias = result_dict["desired_xpos"][j] - rbt_tool - center
+            desired_radius_buffer.append(np.linalg.norm(desired_r_bias))
+            desired_angle_buffer.append(np.arctan2(-desired_r_bias[0],desired_r_bias[1]))
 
         real_r_bias_buffer = np.array(real_r_bias_buffer)
         real_radius_buffer = np.array(real_radius_buffer)
@@ -280,7 +280,7 @@ def eval_robot(task, result_dict, view_flag=True, save_fig=False, logger_path=No
         real_force_door_buffer = []
         for j in range(len(result_dict["xpos"])):
             real_r_bias = result_dict["xpos"][j] - rbt_tool - center
-            real_angle = np.arccos(real_r_bias_buffer[j][1] / radius)
+            real_angle = np.arctan2(-real_r_bias[0], real_r_bias[1])
             c = np.cos(np.pi / 2 - real_angle)
             s = np.sin(np.pi / 2 - real_angle)
             real_rotation = np.array([[c, s, 0],
@@ -391,29 +391,25 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
         radius = np.linalg.norm(r_bias)
         center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])
         rbt_tool = np.array([-0.011, -0.004, 0])
-        real_r_bias_buffer = []
         real_radius_buffer = []
         real_angle_buffer = []
-        desired_r_bias_buffer = []
         desired_radius_buffer = []
         desired_angle_buffer = []
         for j in range(len(result_dict["xpos"])):
-            real_r_bias_buffer.append(result_dict["xpos"][j] - rbt_tool - center)
-            real_radius_buffer.append(np.linalg.norm(real_r_bias_buffer[j]))
-            real_angle_buffer.append(np.arccos(real_r_bias_buffer[j][1] / radius))
+            real_r_bias = result_dict["xpos"][j] - rbt_tool - center
+            real_radius_buffer.append(np.linalg.norm(real_r_bias))
+            real_angle_buffer.append(np.arctan2(-real_r_bias[0],real_r_bias[1]))
 
-            desired_r_bias_buffer.append(result_dict["desired_xpos"][j] - rbt_tool - center)
-            desired_radius_buffer.append(np.linalg.norm(desired_r_bias_buffer[j]))
-            desired_angle_buffer.append(np.arccos(desired_r_bias_buffer[j][1] / radius))
+            desired_r_bias = result_dict["desired_xpos"][j] - rbt_tool - center
+            desired_radius_buffer.append(np.linalg.norm(desired_r_bias))
+            desired_angle_buffer.append(np.arctan2(-desired_r_bias[0],desired_r_bias[1]))
 
-        real_r_bias_buffer = np.array(real_r_bias_buffer)
         real_radius_buffer = np.array(real_radius_buffer)
         real_angle_buffer = np.array(real_angle_buffer)
-        desired_r_bias_buffer = np.array(desired_r_bias_buffer)
         desired_radius_buffer = np.array(desired_radius_buffer)
         desired_angle_buffer = np.array(desired_angle_buffer)
 
-        perfect_door_angle = np.linspace(0, np.pi / 2, 1999)+angle_init
+        perfect_door_angle = np.linspace(0, np.pi / 2, 1999) + angle_init
         door_pos = np.concatenate((-radius * np.sin(perfect_door_angle).reshape(-1, 1),
                                    radius * np.cos(perfect_door_angle).reshape(-1, 1),
                                    np.zeros_like(perfect_door_angle).reshape(-1, 1)), axis=1) + center.reshape(1, 3)
@@ -668,7 +664,7 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
         real_force_door_buffer = []
         for j in range(len(result_dict["xpos"])):
             robot_r_bias = result_dict["xpos"][j] - rbt_tool - center
-            robot_angle = np.arccos(robot_r_bias[1] / radius)
+            robot_angle = np.arctan2(-robot_r_bias[0], robot_r_bias[1])
             c = np.cos(robot_angle - np.pi / 2)
             s = np.sin(robot_angle - np.pi / 2)
             real_rotation = np.array([[c, -s, 0],

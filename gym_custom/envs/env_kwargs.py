@@ -761,7 +761,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 用于TrainEnv的超参数
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
-        max_force = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
+        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         min_desired_xposture = np.array([0.3715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
         max_desired_xposture = np.array([0.6715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
@@ -950,7 +950,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         rbt_tool = np.array([-0.011, -0.004, 0])
         xpos_init, xmat_init = rbt_tool + center + r_bias, np.array([0, 0, 1, 0, -1, 0, 1, 0, 0])
 
-        center_pred = center + np.array([0, 0.05, 0])  # 轨迹规划所用的中心与实际值有1cm的偏移
+        center_pred = center + np.array([0, 0.025, 0])  # 轨迹规划所用的中心与实际值有2.5cm的偏移
         r_bias_pred = xpos_init - rbt_tool - center_pred
         radius_pred = np.linalg.norm(r_bias_pred)
 
@@ -982,7 +982,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 用于TrainEnv的超参数
         min_K = np.array([500, 500, 500, 500, 500, 500], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
-        max_force = np.array([75, 75, 75, 75, 75, 75], dtype=np.float64)
+        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
         min_desired_xposture = np.array([0.2715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
         max_desired_xposture = np.array([0.5715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])

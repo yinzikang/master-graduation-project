@@ -492,7 +492,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             if failure:
                 drawer_reward = -1
             # print(self.data.qpos[-2] / 0.3)
-            reward = 0 * movement_reward + 0.05 * fext_reward + 3 * drawer_reward + 1.
+            reward = 5 * movement_reward + 0.05 * fext_reward + 3 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
             cabinet_pos = np.array([0.8, -0.2, 0.3])
@@ -520,7 +520,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             if failure:
                 door_reward = -1
 
-            reward = 0 * movement_reward + 0.05 * fext_reward + 2 * door_reward + 1.
+            reward = 5 * movement_reward + 0.05 * fext_reward + 2 * door_reward + 1.
 
         return reward
 
@@ -940,7 +940,7 @@ class TrainEnvVariableStiffnessAndPostureAndSM_v2(TrainEnvBase):
                                           0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
         elif 'cabinet door open with plan' in kwargs['task']:
-            self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+            self.action_limit = np.array([75, 75, 75, 7.5, 7.5, 7.5,
                                           0.002, 0.002, 0.002,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                           0.01,
