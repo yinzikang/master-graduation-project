@@ -653,7 +653,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 机器人参数
         mjc_model_path = 'robot/jk5_cabinet_drawer.xml'
         # qpos_init_list = np.array([0, 1.16644734e+01, -9.85767024e+01, 8.69122291e+01, 90, 0]) / 180 * np.pi
-        qpos_init_list = np.array([0, 2.63855021e-01, -1.80129209e+00, 1.53743707, 1.57079633, 0])
+        qpos_init_list = np.array([0,  2.60251853e-02, -1.60034083e+00,  1.57431564e+00,  1.57079633e+00, 0])
         p_bias = np.zeros(3)
         r_bias = np.eye(3)
         rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
@@ -666,9 +666,9 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         step_num = robot_frequency * time_whole
         # 期望轨迹
         # xpos_init, xmat_init = np.array([0.5825-0.011, -0.1135, 0.675 + 0.004]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
-        xpos_init, xmat_init = np.array([0.5579384969754818 - 0.011, -0.1135, 0.6629659585255823 + 0.004]), np.array(
+        xpos_init, xmat_init = np.array([0.6579384969754818 - 0.011, -0.1135, 0.6629659585255823 + 0.004]), np.array(
             [0, 0, 1, 1, 0, 0, 0, 1, 0])
-        # xpos_end, xmat_end = np.array([0.2715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        # xpos_end, xmat_end = np.array([0.3715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         xpos_end, xmat_end = xpos_init - np.array([0.3 * np.cos(np.pi / 60), 0, 0.3 * np.sin(np.pi / 60)]), np.array(
             [0, 0, 1, 1, 0, 0, 0, 1, 0])
         # xpos_end, xmat_end = xpos_init.copy(), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
@@ -685,8 +685,8 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         M = K / (wn * wn)
         # SM = np.eye(3, dtype=np.float64)
         SM = np.array([[0.9986295, 0, -0.0523360],
-                          [0, 1, 0],
-                          [0.0523360, 0, 0.9986295]])
+                       [0, 1, 0],
+                       [0.0523360, 0, 0.9986295]])
         B = 2 * damping_ratio * np.sqrt(M * K)
         controller_parameter = {'M': M, 'B': B, 'K': K, 'SM': SM}
         controller = AdmittanceController_v2
@@ -700,9 +700,9 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
-        min_desired_xposture = np.array([0.2715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        min_desired_xposture = np.array([0.3715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        max_desired_xposture = np.array([0.5715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        max_desired_xposture = np.array([0.6715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         min_desired_xvel = -0.1 * np.ones(6)
         max_desired_xvel = 0.1 * np.ones(6)
         min_desired_xacc = desired_xacc_list.min() * np.ones(6)
@@ -719,8 +719,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
     elif task == 'cabinet drawer open with plan':
         # 机器人参数
         mjc_model_path = 'robot/jk5_cabinet_drawer.xml'
-        # qpos_init_list = np.array([0, 1.16644734e+01, -9.85767024e+01, 8.69122291e+01, 90, 0]) / 180 * np.pi
-        qpos_init_list = np.array([0, 2.63855021e-01, -1.80129209e+00, 1.53743707, 1.57079633, 0])
+        qpos_init_list = np.array([0,  2.60251853e-02, -1.60034083e+00,  1.57431564e+00,  1.57079633e+00, 0])
         p_bias = np.zeros(3)
         r_bias = np.eye(3)
         rbt_kwargs = dict(mjc_model_path=mjc_model_path, task=task, qpos_init_list=qpos_init_list,
@@ -732,10 +731,10 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         time_acceleration = 0.5
         step_num = robot_frequency * time_whole
         # 期望轨迹
-        # xpos_init, xmat_init = np.array([0.5825-0.011, -0.1135, 0.675 + 0.004]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
-        xpos_init, xmat_init = np.array([0.5579384969754818 - 0.011, -0.1135, 0.6629659585255823 + 0.004]), np.array(
+        # xpos_init, xmat_init = np.array([0.6825-0.011, -0.1135, 0.675 + 0.004]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        xpos_init, xmat_init = np.array([0.6579384969754818 - 0.011, -0.1135, 0.6629659585255823 + 0.004]), np.array(
             [0, 0, 1, 1, 0, 0, 0, 1, 0])
-        # xpos_end, xmat_end = np.array([0.2715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        # xpos_end, xmat_end = np.array([0.3715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         xpos_end, xmat_end = xpos_init - np.array([0.3, 0, 0]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         # xpos_end, xmat_end = xpos_init.copy(), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
@@ -762,10 +761,10 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         # 用于TrainEnv的超参数
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
-        max_force = np.array([50, 50, 50, 50, 50, 50], dtype=np.float64)
-        min_desired_xposture = np.array([0.2715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        max_force = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
+        min_desired_xposture = np.array([0.3715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        max_desired_xposture = np.array([0.5715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        max_desired_xposture = np.array([0.6715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         min_desired_xvel = -0.1 * np.ones(6)
         max_desired_xvel = 0.1 * np.ones(6)
         min_desired_xacc = desired_xacc_list.min() * np.ones(6)

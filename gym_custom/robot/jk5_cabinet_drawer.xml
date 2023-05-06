@@ -8,7 +8,7 @@
         <material name="MatLightWood" texrepeat="3 3" specular="0.4" shininess="0.1"/>
     </asset>
     <worldbody>
-        <body name="cabinet" pos="0.8 -0.1135 0.2" quat="0 -0.02617694830787315 0 0.9996573249755573">
+        <body name="cabinet" pos="0.9 -0.1135 0.2" quat="0 -0.02617694830787315 0 0.9996573249755573">
 <!--        <body name="cabinet" pos="0.8 -0.1135 0.2" quat="0 0 0 1">-->
             <!--按压任务-->
             <body name="top board" pos="0 0 0.565">
@@ -39,7 +39,7 @@
                     <geom size=".0025 .045 .005" pos="0 0 0" type="box" rgba="0 0 0 1"/>
                 </body>
                 <inertial pos="0 0 0" mass="1" diaginertia="0.1 0.1 0.1"/>
-                <joint name="drawer joint" type="slide" pos="0 0 0" axis="1 0 0" range="0 0.3" limited="true"
+                <joint name="drawer joint" type="slide" pos="0 0 0" axis="1 0 0" range="0 0.3" limited="false"
                        damping="10" frictionloss="10"/>
             </body>
             <!--门任务。门转轴位于0.8-0.2+0.0075，-0.1135-0.19,0.2+0.22。0.6075,-0.3035,0.42。

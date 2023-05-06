@@ -491,7 +491,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
                 drawer_reward = self.data.qpos[-2] / 0.3
             if failure:
                 drawer_reward = -1
-
+            # print(self.data.qpos[-2] / 0.3)
             reward = 0 * movement_reward + 0.05 * fext_reward + 3 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
