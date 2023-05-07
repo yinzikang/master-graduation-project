@@ -23,8 +23,8 @@ from stable_baselines3.common.torch_layers import FlattenExtractor
 
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 # test_name = 'cabinet surface with plan v7'
-# test_name = 'cabinet drawer open with plan'
-test_name = 'cabinet door open with plan'
+test_name = 'cabinet drawer open with plan'
+# test_name = 'cabinet door open with plan'
 print(env_name)
 print(test_name)
 rl_name = 'PPO'
@@ -36,13 +36,18 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 
-total_timesteps = episode_length * env_num * 2 ** 8  # 11: 655_360, 12: 1310720, 13: 2621440
+batch_size = int(episode_length * env_num / 2)  # 一次拿env_num条完整轨迹进行更新
+reuse_time = 4  # 数据重用次数
+n_steps = int(batch_size * 2 ** 3)  # 单轮更新的采样步数，即buffer大小，足够无覆盖更新8次
+n_epochs = int(n_steps * reuse_time / batch_size)
+total_timesteps = int(n_steps * 2 ** 7)  # 8: 1310720
+print('总交互数', total_timesteps, ' batch_size', batch_size, 'n_steps', n_steps, 'n_epochs', n_epochs, 'reuse_time',
+      reuse_time)
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,
                      features_extractor_kwargs=dict(features_dim=64, num_layers=2),
                      share_features_extractor=True,
                      activation_fn=th.nn.ReLU,
                      net_arch=dict(pi=[64, 64], vf=[64, 64]))
-# replay_buffer_kwargs = dict(n_sampled_goal=4, goal_selection_strategy="future")
 checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / env_num),
                                          save_path=path_name, name_prefix="model",
                                          save_replay_buffer=False, save_vecnormalize=False)
@@ -50,15 +55,16 @@ eval_callback = EvalCallback(eval_env, best_model_save_path=path_name, log_path=
                              eval_freq=int(total_timesteps / 10 / env_num))
 callback = CallbackList([checkpoint_callback, eval_callback])
 
-model = PPO('MlpPolicy', train_env, learning_rate=0.0003, policy_kwargs=policy_kwargs, verbose=1, seed=None,
+model = PPO('MlpPolicy', train_env, learning_rate=0.00003, policy_kwargs=policy_kwargs, verbose=1, seed=None,
             device='cuda', _init_setup_model=True, tensorboard_log='log/' + test_name + '/' + rl_name + '/' + time_name,
             use_sde=False, sde_sample_freq=-1,
-            # on policy特有 除以多少就是多少次更新
-            n_steps=int(total_timesteps / 1024), batch_size=int(total_timesteps / 1024 / 8), gamma=0.99,
+            # on policy特有
+            n_steps=n_steps, batch_size=batch_size, gamma=0.99,
             gae_lambda=0.98,
             ent_coef=0.0, vf_coef=0.0, max_grad_norm=0.5,
-            # 算法特有参数，n_epochs=n_steps/batch_size
-            n_epochs=16, clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.01)
+            # 算法特有
+            n_epochs=n_epochs,
+            clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.03)
 model.learn(total_timesteps=total_timesteps, callback=callback, log_interval=4, tb_log_name="",
             reset_num_timesteps=True, progress_bar=True)
 model.save(path=path_name + 'model')
