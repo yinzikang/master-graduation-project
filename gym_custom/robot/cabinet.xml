@@ -1,25 +1,22 @@
-<!--修改自jk5_cabinet_surface，但是倾斜了，用于擦拭任务-->
+<!--cabinet，用于截图-->
 <mujoco model="jk5_cabinet">
     <include file="basic_env.xml"/>
-    <include file="robot_stick.xml"/>
     <asset>
         <material name="MatMetal" specular="1" shininess="0.3" rgba="0.9 0.9 0.9 1"/>
         <material name="MatDarkWood" texrepeat="3 3" specular="0.4" shininess="0.1"/>
         <material name="MatLightWood" texrepeat="3 3" specular="0.4" shininess="0.1"/>
     </asset>
     <worldbody>
-        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 -0.02617694830787315 0 0.9996573249755573">
-<!--        <body name="cabinet" pos="0.5 -0.1135 0" quat="0 0 0 1">-->
+        <body name="cabinet" pos="0 0 0" quat="0 0 0 1">
             <!--按压任务-->
             <body name="top board" pos="0 0 0.565">
                 <geom size=".2 .2 .01" pos="0 0 0" type="box" rgba="0 0 0 1"
-                      solimp="0.1 0.3 0.001 0.5 2" solref="-20000.0 -0.1" friction="2 0.05 0.001"/>
-<!--                <site name="surface_x" pos="0.1 0.2 0" rgba="1 0 0 1" size="0.01 0.1" type="cylinder" quat="0 0.7071068 0 0.7071068"/>-->
-<!--                <site name="surface_y" pos="0.2 0.1 0" rgba="0 1 0 1" size="0.01 0.1" type="cylinder" quat="0.7071068 -0.7071068 0 0"/>-->
-<!--                <site name="surface_z" pos="0.2 0.2 0.1" rgba="0 0 1 1" size="0.01 0.1" type="cylinder" quat="1 0 0 0"/>-->
-                <inertial pos="0 0 0" mass="100" diaginertia="0.1 0.1 0.1"/>
+                      solimp="0.1 0.3 0.001 0.5 2" solref="-20000.0 -0.1"/>
+                <inertial pos="0 0 0" mass="1000" diaginertia="0.1 0.1 0.1"/>
             </body>
-            <!--抽屉任务-->
+            <!--抽屉任务。
+            关闭时，把手中心实际位置为：0.8-0.2-0.0175,-0.1135,0.2+0.42+0.055=0.5825,-0.1135,0.675 -->
+            <!--因此相对桌子底部中心的偏移为0.2175,0,0.475 -->
             <body name="drawer" pos="0.01 0 0.42">
                 <!--底部-->
                 <geom size=".175 .1625 .0025" pos="0 0 -0.0025" type="box" rgba="1 1 1 1"/>
@@ -29,26 +26,35 @@
                 <!--后面-->
                 <geom size=".0075 .1475 .035" pos="-0.1675 0 0.035" type="box" rgba="1 1 1 1"/>
                 <!--前面-->
-                <geom size=".0075 .19 .075" pos="0.1825 0 0.055" type="box" rgba="1 1 1 1"/>
+                <geom size=".0075 .19 .075" pos="0.1825 0 0.055" type="box" rgba="1 1 1 1"
+                      contype="0" conaffinity="0"/>
                 <!--把手-->
-                <body name="drawer handle" pos="0.19 0 0.055">
-                    <geom size=".0025 .045 .005" pos="0.0175 0 0" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
-                    <geom size=".01 .0025 .005" pos="0.01 0.0475 0" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
-                    <geom size=".01 .0025 .005" pos="0.01 -0.0475 0" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
+                <body name="drawer handle part1" pos="0.19 0 0.055">
+                    <geom size=".01 .0025 .005" pos="0.01 0.0475 0" type="box" rgba="0 0 0 1"/>
+                    <geom size=".01 .0025 .005" pos="0.01 -0.0475 0" type="box" rgba="0 0 0 1"/>
+                </body>
+                <body name="drawer handle part2" pos="0.2075 0 0.055">
+                    <geom size=".0025 .045 .005" pos="0 0 0" type="box" rgba="0 0 0 1"/>
                 </body>
                 <inertial pos="0 0 0" mass="1" diaginertia="0.1 0.1 0.1"/>
                 <joint name="drawer joint" type="slide" pos="0 0 0" axis="1 0 0" range="0 0.3" limited="true"
-                       damping="1" frictionloss="1"/>
+                       damping="10" frictionloss="10"/>
             </body>
-            <!--门任务-->
+            <!--门任务。门转轴位于0.8-0.2+0.0075，-0.1135-0.19,0.2+0.22。0.6075,-0.3035,0.42。
+            长偏置0.19+0.15,高偏置0.0175+0.0075。即0.34,0.025。两者的斜边为半径sqrt(0.34**2+0.025**2)
+            关闭时，把手中心实际位置为：0.8-0.2-0.0175,-0.1135+0.15,0.2+0.22=0.5825,0.0365,0.42
+            打开时，把手中心实际位置为：0.8-0.2+0.0075-0.19-0.15,-0.1135-0.19-0.0075-0.0175,0.2+0.22=0.2675,-0.3285,0.42 -->
+            <!--因此相对桌子底部中心的偏移为0.2175,-0.15,0.22 -->
             <body name="door" pos="0.1925 0 0.22">
                 <!--门板-->
                 <geom name="panel" size="0.0075 0.19 .17" type="box" material="MatDarkWood"/>
                 <!--把手-->
-                <body name="door handle" pos="0.0075 -0.15 0">
-                    <geom size=".0025 .005 .045" pos="0.0175 0 0" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
-                    <geom size=".01 .005 .0025" pos="0.01 0 0.0475" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
-                    <geom size=".01 .005 .0025" pos="0.01 0 -0.0475" type="box" contype="0" conaffinity="0" rgba="0 0 0 1"/>
+                <body name="door handle part1" pos="0.0075 -0.15 0">
+                    <geom size=".01 .005 .0025" pos="0.01 0 0.0475" type="box" rgba="0 0 0 1"/>
+                    <geom size=".01 .005 .0025" pos="0.01 0 -0.0475" type="box" rgba="0 0 0 1"/>
+                </body>
+                <body name="door handle part2" pos="0.025 -0.15 0">
+                    <geom size=".0025 .005 .045" pos="0 0 0" type="box" rgba="0 0 0 1"/>
                 </body>
                 <inertial pos="0.0296816 -0.00152345 0" quat="0.701072 0 0 0.713091"
                           mass="2.43455" diaginertia="0.0913751 0.0521615 0.043714"/>

@@ -735,7 +735,7 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         xpos_init, xmat_init = np.array([0.6579384969754818 - 0.011, -0.1135, 0.6629659585255823 + 0.004]), np.array(
             [0, 0, 1, 1, 0, 0, 0, 1, 0])
         # xpos_end, xmat_end = np.array([0.3715, -0.1135, 0.681]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
-        xpos_end, xmat_end = xpos_init - np.array([0.3, 0, 0]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
+        xpos_end, xmat_end = xpos_init - np.array([0.25, 0, 0]), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         # xpos_end, xmat_end = xpos_init.copy(), np.array([0, 0, 1, 1, 0, 0, 0, 1, 0])
         desired_xposture_list, desired_xvel_list, desired_xacc_list = trajectory_planning_line(xpos_init, xmat_init,
                                                                                                xpos_end, xmat_end,
