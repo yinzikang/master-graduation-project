@@ -19,7 +19,6 @@ from stable_baselines3.common.env_util import make_vec_env
 import gym
 from gym_custom.envs.env_kwargs import env_kwargs
 from rnn_feature_extractor import LSTMFeatureExtractor
-from stable_baselines3.common.torch_layers import FlattenExtractor
 
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 # test_name = 'cabinet surface with plan v7'
@@ -36,7 +35,7 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 
-batch_size = int(episode_length * env_num / 2)  # 一次拿env_num条完整轨迹进行更新
+batch_size = int(episode_length* env_num)  # 一次拿env_num条完整轨迹进行更新
 reuse_time = 4  # 数据重用次数
 n_steps = int(batch_size * 2 ** 3)  # 单轮更新的采样步数，即buffer大小，足够无覆盖更新8次
 n_epochs = int(n_steps * reuse_time / batch_size)
@@ -61,7 +60,7 @@ model = PPO('MlpPolicy', train_env, learning_rate=0.00003, policy_kwargs=policy_
             # on policy特有
             n_steps=n_steps, batch_size=batch_size, gamma=0.99,
             gae_lambda=0.98,
-            ent_coef=0.0, vf_coef=0.0, max_grad_norm=0.5,
+            ent_coef=0.001, vf_coef=0.5, max_grad_norm=0.5,
             # 算法特有
             n_epochs=n_epochs,
             clip_range=0.2, clip_range_vf=None, normalize_advantage=True, target_kl=0.03)
