@@ -484,7 +484,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             movement_reward = - np.sum(abs(xposture_error_table)[0])
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_table)[1:])
-            fext_reward = fext_reward + 10 if fext_reward > -1.5 else fext_reward
+            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
             # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
             drawer_reward = 0
             if success:
@@ -492,7 +492,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             if failure:
                 drawer_reward = -1
             # print(self.data.qpos[-2] / 0.3)
-            reward = 5 * movement_reward + 0.05 * fext_reward + 0 * drawer_reward + 1.
+            reward = 5 * movement_reward + 0.05 * fext_reward + 5 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
             cabinet_pos = np.array([0.8, -0.2, 0.3])
@@ -925,17 +925,17 @@ class TrainEnvVariableStiffnessAndPostureAndSM_v2(TrainEnvBase):
                                        dtype=np.float32)  # 连续动作空间
         if 'cabinet surface with plan' in kwargs['task']:
             self.action_limit = np.array([100, 100, 100, 10, 10, 10,
-                                          0.001, 0.01, 0.001,  # 位置变化限制
+                                          0.001, 0.001, 0.001,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                           0.001,
                                           1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
                                           0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
         elif 'cabinet drawer open with plan' in kwargs['task']:
-            self.action_limit = np.array([100, 100, 100, 10, 10, 10,
+            self.action_limit = np.array([50, 50, 50, 50, 50, 50,
                                           0.001, 0.001, 0.001,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
-                                          0.01,
+                                          0.001,
                                           1, 1, 1,  # 刚度姿态旋转轴变化限制，无意义，反正会标准化
                                           0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
