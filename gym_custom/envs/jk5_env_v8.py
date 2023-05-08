@@ -484,7 +484,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             movement_reward = - np.sum(abs(xposture_error_table)[0])
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_table)[1:])
-            fext_reward = fext_reward + 10 if fext_reward > -2.5 else fext_reward
+            fext_reward = fext_reward + 10 if fext_reward > -1 else fext_reward
             # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
             drawer_reward = 0
             if success:
@@ -932,7 +932,7 @@ class TrainEnvVariableStiffnessAndPostureAndSM_v2(TrainEnvBase):
                                           0.01], dtype=np.float32)  # 姿态的角度变化限制，0.572度每次
 
         elif 'cabinet drawer open with plan' in kwargs['task']:
-            self.action_limit = np.array([50, 50, 50, 50, 50, 50,
+            self.action_limit = np.array([50, 50, 50, 5, 5, 5,
                                           0.001, 0.001, 0.001,  # 位置变化限制
                                           1, 1, 1,  # 旋转轴变化限制，无意义，反正会标准化
                                           0.001,
