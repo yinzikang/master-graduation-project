@@ -29,7 +29,7 @@ env = gym.make(env_name, **rl_kwargs)
 if not check_env(env):
     print('check passed')
 
-test_times = 20
+test_times = 1
 render_flag = False
 plot_fig = True
 save_fig = False
