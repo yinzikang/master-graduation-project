@@ -512,7 +512,7 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             movement_reward = - np.abs(radius_error)
             # 要是力距离期望力较近则进行额外奖励
             fext_reward = - np.sum(abs(force_door)[[0, 2, 3, 4, 5]])
-            fext_reward = fext_reward + 10 if fext_reward > -10 else fext_reward
+            fext_reward = fext_reward + 10 if fext_reward > -5 else fext_reward
             # 成功则衡量任务的完成度给出对应奖励，失败则给出恒定惩罚
             door_reward = 0
             if success:
