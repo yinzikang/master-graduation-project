@@ -912,9 +912,9 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         min_K = np.array([100, 100, 100, 100, 100, 100], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         max_force = np.array([80, 80, 80, 80, 80, 80], dtype=np.float64)
-        min_desired_xposture = np.array([0.25, -0.4, 0.51, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        min_desired_xposture = np.array([0.25, -0.42, 0.51, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        max_desired_xposture = np.array([0.575, -0.05, 0.53, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        max_desired_xposture = np.array([0.58, -0.05, 0.53, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         min_desired_xvel = -0.2 * np.ones(6)
         max_desired_xvel = 0.2 * np.ones(6)
         min_desired_xacc = -0.6 * np.ones(6) * np.ones(6)
@@ -983,11 +983,11 @@ def env_kwargs(task=None, save_flag=False, save_path=None):
         min_K = np.array([500, 500, 500, 500, 500, 500], dtype=np.float64)
         max_K = np.array([5000, 5000, 5000, 5000, 5000, 5000], dtype=np.float64)
         max_force = np.array([75, 75, 75, 75, 75, 75], dtype=np.float64)
-        min_desired_xposture = np.array([0.25, -0.4, 0.51, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
+        min_desired_xposture = np.array([0.2715, -0.1335, 0.641, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1])
         # [0.65, -0.1135, 0.565, 0., 1., 0., 1., 0., 0., 0., 0., -1., 0.70710678, 0.70710678, 0., 0.]
-        max_desired_xposture = np.array([0.575, -0.05, 0.53, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        min_desired_xvel = -0.2 * np.ones(6)
-        max_desired_xvel = 0.2 * np.ones(6)
+        max_desired_xposture = np.array([0.5715, -0.0935, 0.721, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        min_desired_xvel = -0.1 * np.ones(6)
+        max_desired_xvel = 0.1 * np.ones(6)
         min_desired_xacc = desired_xacc_list.min() * np.ones(6)
         max_desired_xacc = desired_xacc_list.max() * np.ones(6)
         rl_frequency = 20  # 500可以整除，越大越多
