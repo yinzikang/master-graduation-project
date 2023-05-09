@@ -25,10 +25,12 @@ import numpy as np
 # 环境加载
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 # test_name = 'cabinet surface with plan v7'
-test_name = 'cabinet drawer open with plan'
-# test_name = 'cabinet door open with plan'
+# test_name = 'cabinet drawer open with plan'
+test_name = 'cabinet door open with plan'
 rl_name = 'PPO'
-time_name = '05-08-10-34'
+# time_name = '05-07-13-06'
+# time_name = '05-08-09-09'
+time_name = '05-09-00-18'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 655360
 mode = 3

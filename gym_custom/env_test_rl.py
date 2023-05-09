@@ -17,8 +17,8 @@ from envs.env_kwargs import env_kwargs
 from eval_everything import eval_everything
 
 # test_name = 'cabinet surface with plan v7'
-test_name = 'cabinet drawer open with plan'
-# test_name = 'cabinet door open with plan'
+# test_name = 'cabinet drawer open with plan'
+test_name = 'cabinet door open with plan test'
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 logger_path = './rl_test_results/' + test_name + '/' + env_name
 _, _, rl_kwargs = env_kwargs(test_name)
@@ -31,9 +31,9 @@ if not check_env(env):
 
 test_times = 20
 render_flag = False
-plot_fig = False
+plot_fig = True
 save_fig = False
-zero_action_flag = False
+zero_action_flag = True
 
 for _ in range(test_times):
     env.reset()

@@ -726,41 +726,41 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
 
-    # i += 1
-    # plt.figure(i)
-    # plt.plot(result_dict["observation"][:, -1, :3])
-    # plt.legend(['x', 'y', 'z'])
-    # plt.title('observation xpos')
-    # plt.grid()
-    # if save_fig:
-    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-    #
-    # i += 1
-    # plt.figure(i)
-    # plt.plot(result_dict["observation"][:, -1, 3:7])
-    # plt.legend(['x', 'y', 'z', 'w'])
-    # plt.title('observation xquat')
-    # plt.grid()
-    # if save_fig:
-    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-    #
-    # i += 1
-    # plt.figure(i)
-    # plt.plot(result_dict["observation"][:, -1, 7:10])
-    # plt.legend(['x', 'y', 'z'])
-    # plt.title('observation pvel')
-    # plt.grid()
-    # if save_fig:
-    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-    #
-    # i += 1
-    # plt.figure(i)
-    # plt.plot(result_dict["observation"][:, -1, 10:13])
-    # plt.legend(['x', 'y', 'z'])
-    # plt.title('observation rvel')
-    # plt.grid()
-    # if save_fig:
-    #     plt.savefig(logger_path + '/' + plt.gca().get_title())
+    i += 1
+    plt.figure(i)
+    plt.plot(result_dict["observation"][:, -1, :3])
+    plt.legend(['x', 'y', 'z'])
+    plt.title('observation xpos')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(result_dict["observation"][:, -1, 3:7])
+    plt.legend(['x', 'y', 'z', 'w'])
+    plt.title('observation xquat')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(result_dict["observation"][:, -1, 7:10])
+    plt.legend(['x', 'y', 'z'])
+    plt.title('observation pvel')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
+
+    i += 1
+    plt.figure(i)
+    plt.plot(result_dict["observation"][:, -1, 10:13])
+    plt.legend(['x', 'y', 'z'])
+    plt.title('observation rvel')
+    plt.grid()
+    if save_fig:
+        plt.savefig(logger_path + '/' + plt.gca().get_title())
 
     i += 1
     plt.figure(i)
