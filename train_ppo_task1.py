@@ -39,7 +39,7 @@ batch_size = int(episode_length* env_num)  # 一次拿env_num条完整轨迹进�
 reuse_time = 4  # 数据重用次数
 n_steps = int(batch_size * 2 ** 3)  # 单轮更新的采样步数，即buffer大小，足够无覆盖更新8次
 n_epochs = int(n_steps * reuse_time / batch_size)
-total_timesteps = int(n_steps * 2 ** 7)  # 8: 1310720
+total_timesteps = int(n_steps * 2 ** 8)  # 8: 1310720
 print('总交互数', total_timesteps, ' batch_size', batch_size, 'n_steps', n_steps, 'n_epochs', n_epochs, 'reuse_time',
       reuse_time)
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,

@@ -21,6 +21,10 @@ from gym_custom.envs.jk5_env_v7 import Jk5StickRobotWithController, env_kwargs
 from gym_custom.envs.controller import AdmittanceController_v3, orientation_error_quat_with_mat, \
     orientation_error_axis_angle_with_mat
 
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.size'] = 10.5
+plt.rcParams['lines.linewidth'] = 2.0
+
 _, rbt_controller_kwargs, _ = env_kwargs('fig_plot')
 # 导纳控制+轴角误差数据
 rbt_controller_kwargs['controller'] = AdmittanceController_v3
@@ -48,7 +52,7 @@ for status_name in jk5_with_controller.status_list:
     admittance_buffer2[status_name] = [jk5_with_controller.status[status_name]]
 for _ in range(rbt_controller_kwargs['step_num']):
     jk5_with_controller.step()
-    jk5_with_controller.render()
+    # jk5_with_controller.render()
     for status_name in jk5_with_controller.status_list:
         admittance_buffer2[status_name].append(jk5_with_controller.status[status_name])
 for status_name in jk5_with_controller.status_list:
@@ -57,7 +61,7 @@ for status_name in jk5_with_controller.status_list:
 color1 = (190 / 255, 226 / 255, 255 / 255)
 color2 = (251 / 255, 154 / 255, 255 / 255)
 show_flag = True
-save_flag = False
+save_flag = True
 save_dir = './figs/different_error'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -166,12 +170,12 @@ if show_flag:
 
 i += 1
 plt.figure(i)
-plt.plot(admittance_buffer1["xvel"][:, 3], label='ix')
-plt.plot(admittance_buffer1["xvel"][:, 4], label='iy')
-plt.plot(admittance_buffer1["xvel"][:, 5], label='iz')
-plt.plot(admittance_buffer2["xvel"][:, 3], label='ax')
-plt.plot(admittance_buffer2["xvel"][:, 4], label='ay')
-plt.plot(admittance_buffer2["xvel"][:, 5], label='az')
+plt.plot(admittance_buffer1["xvel"][:, 3], label='ax')
+plt.plot(admittance_buffer1["xvel"][:, 4], label='ay')
+plt.plot(admittance_buffer1["xvel"][:, 5], label='az')
+plt.plot(admittance_buffer2["xvel"][:, 3], label='qx')
+plt.plot(admittance_buffer2["xvel"][:, 4], label='qy')
+plt.plot(admittance_buffer2["xvel"][:, 5], label='qz')
 plt.plot(admittance_buffer1["desired_xvel"][:, 3], label='dx')
 plt.plot(admittance_buffer1["desired_xvel"][:, 4], label='dy')
 plt.plot(admittance_buffer1["desired_xvel"][:, 5], label='dz')
@@ -187,12 +191,12 @@ if show_flag:
 
 i += 1
 plt.figure(i)
-plt.plot(admittance_buffer1["xvel"][:, 3], label='ix')
-plt.plot(admittance_buffer1["xvel"][:, 4], label='iy')
-plt.plot(admittance_buffer1["xvel"][:, 5], label='iz')
-plt.plot(admittance_buffer2["xvel"][:, 3], label='ax')
-plt.plot(admittance_buffer2["xvel"][:, 4], label='ay')
-plt.plot(admittance_buffer2["xvel"][:, 5], label='az')
+plt.plot(admittance_buffer1["xvel"][:, 3], label='ax')
+plt.plot(admittance_buffer1["xvel"][:, 4], label='ay')
+plt.plot(admittance_buffer1["xvel"][:, 5], label='az')
+plt.plot(admittance_buffer2["xvel"][:, 3], label='qx')
+plt.plot(admittance_buffer2["xvel"][:, 4], label='qy')
+plt.plot(admittance_buffer2["xvel"][:, 5], label='qz')
 plt.plot(admittance_buffer1["desired_xvel"][:, 3], label='dx')
 plt.plot(admittance_buffer1["desired_xvel"][:, 4], label='dy')
 plt.plot(admittance_buffer1["desired_xvel"][:, 5], label='dz')
@@ -208,12 +212,12 @@ if show_flag:
 
 i += 1
 plt.figure(i)
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 3], axis=0), label='ix')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 4], axis=0), label='iy')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 5], axis=0), label='iz')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 3], axis=0), label='ax')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 4], axis=0), label='ay')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 5], axis=0), label='az')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 3], axis=0), label='ax')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 4], axis=0), label='ay')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 5], axis=0), label='az')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 3], axis=0), label='qx')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 4], axis=0), label='qy')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 5], axis=0), label='qz')
 plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["desired_xvel"][:, 3], axis=0), label='dx')
 plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["desired_xvel"][:, 4], axis=0), label='dy')
 plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["desired_xvel"][:, 5], axis=0), label='dz')
@@ -229,12 +233,12 @@ if show_flag:
 
 i += 1
 plt.figure(i)
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 3], axis=0), label='ix')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 4], axis=0), label='iy')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 5], axis=0), label='iz')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 3], axis=0), label='ax')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 4], axis=0), label='ay')
-plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 5], axis=0), label='az')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 3], axis=0), label='ax')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 4], axis=0), label='ay')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["xvel"][:, 5], axis=0), label='az')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 3], axis=0), label='qx')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 4], axis=0), label='qy')
+plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer2["xvel"][:, 5], axis=0), label='qz')
 plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["desired_xvel"][:, 3], axis=0), label='dx')
 plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["desired_xvel"][:, 4], axis=0), label='dy')
 plt.plot(jk5_with_controller.control_frequency * np.diff(admittance_buffer1["desired_xvel"][:, 5], axis=0), label='dz')

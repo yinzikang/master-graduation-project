@@ -446,9 +446,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
     def get_reward(self, done, success, failure):
         if 'cabinet surface with plan' in self.task:
             # 奖励范围： - 1.5
-            xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
+            # xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
+            #                                  orientation_error_quat_with_quat(self.status['desired_xquat'],
+            #                                                                   self.status['xquat'])])
+            xposture_error = np.concatenate([self.status['desired_xpos'] -
+                                             self.init_desired_xposture_list[self.current_step, 0:3],
                                              orientation_error_quat_with_quat(self.status['desired_xquat'],
-                                                                              self.status['xquat'])])
+                                                                              self.init_desired_xposture_list[
+                                                                              self.current_step, 12:16])])
             force_error = self.status['contact_force'] - self.status['desired_force']
             # table = np.eye(3)
             table_rotation = np.array([[0.9986295, 0, -0.0523360],
@@ -468,9 +473,14 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             reward = 5 * movement_reward + 0.05 * fext_reward + 1.
 
         elif 'cabinet drawer open with plan' in self.task:
-            xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
+            # xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
+            #                                  orientation_error_quat_with_quat(self.status['desired_xquat'],
+            #                                                                   self.status['xquat'])])
+            xposture_error = np.concatenate([self.status['desired_xpos'] -
+                                             self.init_desired_xposture_list[self.current_step, 0:3],
                                              orientation_error_quat_with_quat(self.status['desired_xquat'],
-                                                                              self.status['xquat'])])
+                                                                              self.init_desired_xposture_list[
+                                                                              self.current_step, 12:16])])
             # table = np.eye(3)
             table_rotation = np.array([[0.9986295, 0, -0.0523360],
                                        [0, 1, 0],

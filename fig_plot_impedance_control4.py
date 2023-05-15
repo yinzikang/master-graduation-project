@@ -66,6 +66,10 @@ def draw_ellipsoid(k_r_p):
                                           emission=1)  # RGBA of the marker
 
 
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.size'] = 10.5
+plt.rcParams['lines.linewidth'] = 2.0
+
 geom_name_list = ['base_link_geom', 'link1_geom', 'link2_geom', 'link3_geom', 'link4_geom', 'link5_geom', 'link6_geom',
                   'ft_sensor_geom', 'stick_geom', 'dummy_body_geom']
 posture_buffer = np.empty((2, len(geom_name_list), 12))

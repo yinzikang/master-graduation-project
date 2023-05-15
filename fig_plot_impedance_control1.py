@@ -21,6 +21,10 @@ import numpy as np
 from gym_custom.envs.jk5_env_v7 import Jk5StickRobotWithController, env_kwargs
 from gym_custom.envs.controller import AdmittanceController_v2, ImpedanceController_v2
 
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.size'] = 10.5
+plt.rcParams['lines.linewidth'] = 2.0
+
 _, rbt_controller_kwargs, _ = env_kwargs('fig_plot')
 # 阻抗控制数据
 rbt_controller_kwargs['controller'] = ImpedanceController_v2

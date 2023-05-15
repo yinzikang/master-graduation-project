@@ -22,7 +22,7 @@ from gym_custom.envs.env_kwargs import env_kwargs
 from rnn_feature_extractor import LSTMFeatureExtractor
 from stable_baselines3.common.torch_layers import FlattenExtractor
 
-env_name = 'TrainEnvVariableStiffnessAndPosture-v7'
+env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 test_name = 'cabinet surface with plan v7'
 rl_name = 'SAC'
 time_name = time.strftime("%m-%d-%H-%M")

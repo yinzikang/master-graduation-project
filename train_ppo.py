@@ -21,9 +21,9 @@ from gym_custom.envs.env_kwargs import env_kwargs
 from rnn_feature_extractor import LSTMFeatureExtractor
 
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
-test_name = 'cabinet surface with plan v7'
+# test_name = 'cabinet surface with plan v7'
 # test_name = 'cabinet drawer open with plan'
-# test_name = 'cabinet door open with plan'
+test_name = 'cabinet door open with plan'
 print(env_name)
 print(test_name)
 rl_name = 'PPO'
@@ -35,11 +35,11 @@ episode_length = 80
 train_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 eval_env = make_vec_env(env_id=env_name, n_envs=env_num, env_kwargs=rl_kwargs)
 
-batch_size = int(episode_length* env_num)  # 一次拿env_num条完整轨迹进行更新
+batch_size = int(episode_length * env_num)  # 一次拿env_num条完整轨迹进行更新
 reuse_time = 4  # 数据重用次数
 n_steps = int(batch_size * 2 ** 3)  # 单轮更新的采样步数，即buffer大小，足够无覆盖更新8次
 n_epochs = int(n_steps * reuse_time / batch_size)
-total_timesteps = int(n_steps * 2 ** 7)  # 8: 1310720
+total_timesteps = int(n_steps * 2 ** 8)  # 8: 1310720
 print('总交互数', total_timesteps, ' batch_size', batch_size, 'n_steps', n_steps, 'n_epochs', n_epochs, 'reuse_time',
       reuse_time)
 policy_kwargs = dict(features_extractor_class=LSTMFeatureExtractor,
@@ -52,6 +52,8 @@ checkpoint_callback = CheckpointCallback(save_freq=int(total_timesteps / 10 / en
                                          save_replay_buffer=False, save_vecnormalize=False)
 eval_callback = EvalCallback(eval_env, best_model_save_path=path_name, log_path=path_name,
                              eval_freq=int(total_timesteps / 10 / env_num))
+
+
 callback = CallbackList([checkpoint_callback, eval_callback])
 
 model = PPO('MlpPolicy', train_env, learning_rate=0.00003, policy_kwargs=policy_kwargs, verbose=1, seed=None,
