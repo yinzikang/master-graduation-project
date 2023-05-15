@@ -449,11 +449,11 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             # xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
             #                                  orientation_error_quat_with_quat(self.status['desired_xquat'],
             #                                                                   self.status['xquat'])])
-            xposture_error = np.concatenate([self.status['desired_xpos'] -
-                                             self.init_desired_xposture_list[self.current_step, 0:3],
-                                             orientation_error_quat_with_quat(self.status['desired_xquat'],
-                                                                              self.init_desired_xposture_list[
-                                                                              self.current_step, 12:16])])
+            xposture_error = np.concatenate([self.init_desired_xposture_list[self.current_step, 0:3] -
+                                             self.status['xpos'],
+                                             orientation_error_quat_with_quat(self.init_desired_xposture_list[
+                                                                              self.current_step, 12:16],
+                                                                              self.status['xquat'])])
             force_error = self.status['contact_force'] - self.status['desired_force']
             # table = np.eye(3)
             table_rotation = np.array([[0.9986295, 0, -0.0523360],
@@ -476,11 +476,11 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             # xposture_error = np.concatenate([self.status['desired_xpos'] - self.status['xpos'],
             #                                  orientation_error_quat_with_quat(self.status['desired_xquat'],
             #                                                                   self.status['xquat'])])
-            xposture_error = np.concatenate([self.status['desired_xpos'] -
-                                             self.init_desired_xposture_list[self.current_step, 0:3],
-                                             orientation_error_quat_with_quat(self.status['desired_xquat'],
-                                                                              self.init_desired_xposture_list[
-                                                                              self.current_step, 12:16])])
+            xposture_error = np.concatenate([self.init_desired_xposture_list[self.current_step, 0:3] -
+                                             self.status['xpos'],
+                                             orientation_error_quat_with_quat(self.init_desired_xposture_list[
+                                                                              self.current_step, 12:16],
+                                                                              self.status['xquat'])])
             # table = np.eye(3)
             table_rotation = np.array([[0.9986295, 0, -0.0523360],
                                        [0, 1, 0],
