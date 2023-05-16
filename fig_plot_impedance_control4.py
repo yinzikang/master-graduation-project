@@ -76,7 +76,7 @@ posture_buffer = np.empty((2, len(geom_name_list), 12))
 record_step_list = [0, 50, 100, 200, 300, 400, 500, 700, 1000, 1400]
 k_r_p_list = []
 
-_, rbt_controller_kwargs, _ = env_kwargs('cabinet surface with plan test')
+_, rbt_controller_kwargs, _ = env_kwargs('desk with plan')
 r = np.sqrt(0.2**2+0.565**2)
 theta = np.arctan(0.565/0.2)
 table_position = np.array([0.5 - r * np.cos(theta-np.pi/60), -0.2, r * np.sin(theta-np.pi/60)])
@@ -102,19 +102,19 @@ for step in range(rbt_controller_kwargs['step_num']):
     #     for geom_idx in range(len(geom_name_list)):
     #         posture_buffer[1][geom_idx][:3] = jk5_with_controller.data.geom(geom_name_list[geom_idx]).xpos
     #         posture_buffer[1][geom_idx][3:] = jk5_with_controller.data.geom(geom_name_list[geom_idx]).xmat
-    # if step in record_step_list:
-    #     k_r_p_list.append([jk5_with_controller.status["controller_parameter"]["K"][:3] / 50000,
-    #                        jk5_with_controller.status["controller_parameter"]["SM"],
-    #                        jk5_with_controller.status["xpos"]])
+    if step in record_step_list:
+        k_r_p_list.append([jk5_with_controller.status["controller_parameter"]["K"][:3] / 50000,
+                           jk5_with_controller.status["controller_parameter"]["SM"],
+                           jk5_with_controller.status["xpos"]])
 
-    # jk5_with_controller.render()
+    jk5_with_controller.render()
     # if step > 0:
     #     draw_robot(posture_buffer[0], 1)
     # if step > 1000:
     #     draw_robot(posture_buffer[1], 0.66)
-    # for idx in range(len(record_step_list)):
-    #     if step > record_step_list[idx]:
-    #         draw_ellipsoid(k_r_p_list[idx])
+    for idx in range(len(record_step_list)):
+        if step > record_step_list[idx]:
+            draw_ellipsoid(k_r_p_list[idx])
     for status_name in jk5_with_controller.status_list:
         admittance_buffer1[status_name].append(jk5_with_controller.status[status_name])
 for status_name in jk5_with_controller.status_list:

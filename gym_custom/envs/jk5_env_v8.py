@@ -505,10 +505,10 @@ class TrainEnvBase(Jk5StickRobotWithController, Env):
             reward = 5 * movement_reward + 0.05 * fext_reward + 5 * drawer_reward + 1.
 
         elif 'cabinet door open with plan' in self.task:
-            cabinet_pos = np.array([0.8, -0.2, 0.3])
-            radius = np.sqrt(0.34 ** 2 + 0.025 ** 2)
-            angle_bias = np.arctan(np.abs(0.025 / 0.34))
-            center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])
+            cabinet_pos = np.array([0.8, -0.2, 0.3])  # 准确
+            radius = np.sqrt(0.34 ** 2 + 0.025 ** 2)  # 准确
+            angle_bias = np.arctan(0.025 / 0.34)  # 准确
+            center = cabinet_pos + np.array([-0.2 + 0.0075, -0.19, 0.22])  # 准确
             door_angle = self.data.qpos[-1]
             c = np.cos(angle_bias + door_angle - np.pi / 2)
             s = np.sin(angle_bias + door_angle - np.pi / 2)
@@ -1056,6 +1056,11 @@ class TrainEnvVariableStiffnessAndPostureAndSM_v2(TrainEnvBase):
 
         return self.get_observation(), reward, done, other_info
 
+    def step2(self):
+        """
+        为了画椭球留出来的接口
+        """
+        super().step()
 
 class VS(TrainEnvVariableStiffness):
     def __init__(self, task_name):

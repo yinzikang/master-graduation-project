@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""用于评估任务一的最优表现
+"""用于评估任务二的最优表现
 
 Write detailed description here
 
@@ -17,18 +17,18 @@ import numpy as np
 from gym_custom.envs.env_kwargs import env_kwargs
 from gym_custom.utils.custom_loader import load_episode
 from gym_custom.envs.controller import orientation_error_quat_with_quat, mat33_to_quat
-from gym_custom.envs.transformations import quaternion_multiply
+from gym_custom.envs.transformations import quaternion_multiply, quaternion_inverse
 
 plt.rcParams['font.family'] = 'Times New Roman'
 plt.rcParams['font.size'] = 10.5
 plt.rcParams['lines.linewidth'] = 2.0
 
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
-test_name = 'cabinet surface with plan v7'
+test_name = 'cabinet drawer open with plan'
 
 rl_name = 'PPO'
-time_name = '04-30-17-20'
-# time_name = '05-15-11-11'
+time_name = '05-07-22-47'
+# time_name = '05-08-09-09'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 logger_path = "eval_results/" + path_name + "best_model"
 save_dir = './figs/' + test_name
@@ -43,11 +43,10 @@ view_flag = True
 duration = 2000
 
 angle = np.pi / 60
-r = np.sqrt(0.2 ** 2 + 0.575 ** 2)
-theta = np.arctan(0.575 / 0.2) - angle
-start_point = np.array([0.5 - r * np.cos(theta), -0.1135, r * np.sin(theta)]) + \
-              np.array([-0.01 * np.sin(angle), 0, 0.01 * np.cos(angle)])
-end_point = start_point + np.array([0.4 * np.cos(angle), 0, 0.4 * np.sin(angle)])
+r = np.sqrt(0.2175 ** 2 + 0.475 ** 2)
+theta = np.arctan(0.475 / 0.2175) - angle
+start_point = np.array([0.9 - r * np.cos(theta), -0.1135, 0.2 + r * np.sin(theta)]) + np.array([-0.011, 0, 0.004])
+end_point = start_point + np.array([-0.3 * np.cos(angle), 0, - 0.3 * np.sin(angle)])
 pos_table = np.linspace(start_point, end_point, num=duration - 1, axis=0)
 
 table = np.array([[0.9986295, 0, -0.0523360],
@@ -64,18 +63,18 @@ pos_adjusted = result_dict["desired_xpos"]
 pos_real = result_dict["xpos"]
 
 plt.figure(i)
-plt.plot(pos_table[:, 0], pos_table[:, 2], label='cabinet surface')
+plt.plot(pos_table[:, 0], pos_table[:, 2], label='cabinet drawer')
 plt.plot(pos_init[:, 0], pos_init[:, 2], label='desired path')
 plt.plot(pos_adjusted[:, 0], pos_adjusted[:, 2], label='path adjusted by action')
 plt.plot(pos_real[:, 0], pos_real[:, 2], label='actual path')
-plt.legend(loc='upper right')
+plt.legend(loc='lower right')
 plt.xlabel(r'X position $\mathrm{(m)}$')
 plt.ylabel(r'Z position $\mathrm{(m)}$')
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface xpos.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer xpos.png', dpi=600, bbox_inches='tight')
 if save_flag:
-    plt.title('surface xpos')
+    plt.title('drawer xpos')
 
 xpos_error_table_buffer1 = []
 xpos_error_table_buffer2 = []
@@ -96,9 +95,9 @@ plt.ylabel(r'position error $\mathrm{(m)}$')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface xpos error.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer xpos error.png', dpi=600, bbox_inches='tight')
 if view_flag:
-    plt.title('surface xpos error with init')
+    plt.title('drawer xpos error with init')
 
 i += 1
 plt.figure(i)
@@ -111,9 +110,9 @@ plt.ylabel(r'position error $\mathrm{(m)}$')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface xpos error.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer xpos error.png', dpi=600, bbox_inches='tight')
 if view_flag:
-    plt.title('surface xpos error with adjusted')
+    plt.title('drawer xpos error with adjusted')
 
 # 姿态误差
 mat_init = env.init_desired_xposture_list[:duration - 1, 3:12]
@@ -147,7 +146,7 @@ plt.ylabel(r'orientation error')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface xquat error.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer xquat error.png', dpi=600, bbox_inches='tight')
 if view_flag:
     plt.title('orientation error with init')
 
@@ -162,7 +161,7 @@ plt.ylabel(r'orientation error')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface xquat error.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer xquat error.png', dpi=600, bbox_inches='tight')
 if view_flag:
     plt.title('orientation error with adjusted')
 
@@ -177,7 +176,7 @@ plt.ylabel(r'orientation error')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface xquat error.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer xquat error.png', dpi=600, bbox_inches='tight')
 if view_flag:
     plt.title('orientation error with optimal')
 
@@ -197,9 +196,9 @@ plt.ylabel(r'contact force $\mathrm{(N)}$')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface contact force table.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer contact force table.png', dpi=600, bbox_inches='tight')
 if view_flag:
-    plt.title('surface contact force table')
+    plt.title('drawer contact force table')
 
 # 刚度大小
 i += 1
@@ -213,9 +212,9 @@ plt.ylabel(r'stiffness $\mathrm{(N/m)}$')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface K.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer K.png', dpi=600, bbox_inches='tight')
 if view_flag:
-    plt.title('surface K')
+    plt.title('drawer K')
 
 # 刚度姿态
 K_quat = []
@@ -238,9 +237,9 @@ plt.ylabel(r'stiffness quat')
 plt.xlim([0, 2000])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface K quat.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer K quat.png', dpi=600, bbox_inches='tight')
 if view_flag:
-    plt.title('surface K quat')
+    plt.title('drawer K quat')
 
 # 奖励
 i += 1
@@ -251,9 +250,9 @@ plt.ylabel('average return')
 plt.xlim([0, 80])
 plt.grid()
 if save_flag:
-    plt.savefig(save_dir + '/surface reward.png', dpi=600, bbox_inches='tight')
+    plt.savefig(save_dir + '/drawer reward.png', dpi=600, bbox_inches='tight')
 if view_flag:
-    plt.title('surface reward')
+    plt.title('drawer reward')
 
 if view_flag:
     plt.show()

@@ -21,11 +21,11 @@ plt.rcParams['lines.linewidth'] = 2.0
 
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 # test_name = 'cabinet surface with plan v7'
-# time_name_list = ['05-04-18-26', '05-05-14-05', '05-15-11-11']
-# test_name = 'cabinet drawer open with plan'
-# time_name_list = ['05-08-10-34', '05-08-17-08', '05-15-10-18']
-test_name = 'cabinet door open with plan'
-time_name_list = ['05-15-01-19', '05-15-01-20']
+# time_name_list = ['05-15-11-11','05-07-20-57','05-08-09-51','05-15-17-42','05-16-09-48']
+test_name = 'cabinet drawer open with plan'
+time_name_list = ['05-08-10-34', '05-15-10-18','05-16-01-12']
+# test_name = 'cabinet door open with plan'
+# time_name_list = ['05-15-01-19', '05-15-01-20']
 print(env_name)
 print(test_name)
 rl_name = 'PPO'

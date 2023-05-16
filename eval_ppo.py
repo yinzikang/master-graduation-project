@@ -24,19 +24,18 @@ import numpy as np
 # 任务参数
 # 环境加载
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
-test_name = 'cabinet surface with plan v7'
-# test_name = 'cabinet drawer open with plan'
+# test_name = 'cabinet surface with plan v7'
+test_name = 'cabinet drawer open with plan'
 # test_name = 'cabinet door open with plan'
 rl_name = 'PPO'
-# time_name = '04-30-17-20'
-# time_name = '05-07-20-57'
-time_name = '05-15-11-11'
+time_name = '05-08-10-34'
+# time_name = '05-15-11-11'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 655360
 mode = 3
 
 eval_flag = True
-save_fig = False
+save_fig = True
 plot_fig = True
 render = False
 n_eval_episodes = 1
