@@ -21,7 +21,7 @@ from gym_custom.envs.controller import ComputedTorqueController
 from gym_custom.envs.controller import orientation_error_quat_with_quat
 from gym_custom.envs.env_kwargs import env_kwargs
 from gym_custom.envs.jk5_env_v8 import Jk5StickRobotWithController
-
+from eval_everything import eval_robot
 
 def load_npy_files(path):
     results = {}
@@ -136,16 +136,17 @@ env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 # test_name = 'cabinet surface with plan v7'
 # time_name = '04-30-17-20'
 # mode = 3
-# test_name = 'cabinet drawer open with plan'
-# time_name = '05-07-22-47'
-# mode = 3
-test_name = 'cabinet door open with plan'
-time_name = '05-09-15-56'
-mode = 2
+test_name = 'cabinet drawer open with plan'
+time_name = '05-07-22-47'
+mode = 3
+# test_name = 'cabinet door open with plan'
+# time_name = '05-09-15-56'
+# mode = 2
 rl_name = 'PPO'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 655360
 
+plot_flag = False
 render_flag = True
 logger_path = None
 if mode == 1:  # 评估中间模型
@@ -171,7 +172,7 @@ desired_xacc_list = np.vstack([desired_xacc_list, desired_xacc_list[-1:, :]])
 desired_force_list = np.vstack([desired_force_list, desired_force_list[-1:, :]])
 
 _, rbt_controller_kwargs, rl_kwargs = env_kwargs(test_name, save_flag=False)
-wn = 20
+wn = 200
 damping_ratio = np.sqrt(2)
 kp = wn * wn * np.ones(6, dtype=np.float64)
 kd = 2 * damping_ratio * np.sqrt(kp)
@@ -188,6 +189,9 @@ if render_flag:
     env.viewer_init()
 
 reward = 0
+buffer = dict()
+for status_name in env.status.keys():
+    buffer[status_name] = [env.status[status_name]]
 for step in range(2000):
 
     done = False
@@ -203,7 +207,6 @@ for step in range(2000):
 
     failure = error_K or error_force
     done = success or failure
-    env.status.update(done=done, success=success, failure=failure)
 
     # 获得奖励
     reward += get_reward(done, success, failure)
@@ -211,4 +214,11 @@ for step in range(2000):
     if done:
         break
 
+    for status_name in env.status.keys():
+        buffer[status_name].append(env.status[status_name])
+for status_name in env.status.keys():
+    buffer[status_name] = np.array(buffer[status_name])
+
 print(reward / 25)
+
+eval_robot(test_name, buffer, plot_flag)

@@ -37,19 +37,21 @@ def load_npy_files(path):
 # 任务参数
 # 环境加载
 env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
-# test_name = 'cabinet surface with plan v7'
-test_name = 'cabinet drawer open with plan'
+test_name = 'cabinet surface with plan v7'
+time_name = '04-30-17-20'
+mode = 3
+# test_name = 'cabinet drawer open with plan'
+# time_name = '05-07-22-47'
+# mode = 3
 # test_name = 'cabinet door open with plan'
+# time_name = '05-09-15-56'
+# mode = 2
 rl_name = 'PPO'
-# time_name = '05-07-13-06'
-time_name = '05-08-09-09'
-# time_name = '05-10-10-01'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 655360
-mode = 3
 
 save_fig = False
-plot_fig = True
+plot_fig = False
 render_flag = False
 
 logger_path = None

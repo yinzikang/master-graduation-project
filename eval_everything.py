@@ -341,8 +341,8 @@ def eval_robot(task, result_dict, view_flag=True, save_fig=False, logger_path=No
     # plt.grid()
     # if save_fig:
     #     plt.savefig(logger_path + '/' + plt.gca().get_title())
-
-    plt.show()
+    if view_flag:
+        plt.show()
 
 
 def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_path=None):
