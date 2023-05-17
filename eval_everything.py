@@ -67,11 +67,11 @@ def eval_robot(task, result_dict, view_flag=True, save_fig=False, logger_path=No
         for j in range(len(result_dict["xpos"])):
             real_r_bias = result_dict["xpos"][j] - rbt_tool - center
             real_radius_buffer.append(np.linalg.norm(real_r_bias))
-            real_angle_buffer.append(np.arctan2(-real_r_bias[0],real_r_bias[1]))
+            real_angle_buffer.append(np.arctan2(-real_r_bias[0], real_r_bias[1]))
 
             desired_r_bias = result_dict["desired_xpos"][j] - rbt_tool - center
             desired_radius_buffer.append(np.linalg.norm(desired_r_bias))
-            desired_angle_buffer.append(np.arctan2(-desired_r_bias[0],desired_r_bias[1]))
+            desired_angle_buffer.append(np.arctan2(-desired_r_bias[0], desired_r_bias[1]))
 
         real_r_bias_buffer = np.array(real_r_bias_buffer)
         real_radius_buffer = np.array(real_radius_buffer)
@@ -398,11 +398,11 @@ def eval_everything(env, result_dict, view_flag=True, save_fig=False, logger_pat
         for j in range(len(result_dict["xpos"])):
             real_r_bias = result_dict["xpos"][j] - rbt_tool - center
             real_radius_buffer.append(np.linalg.norm(real_r_bias))
-            real_angle_buffer.append(np.arctan2(-real_r_bias[0],real_r_bias[1]))
+            real_angle_buffer.append(np.arctan2(-real_r_bias[0], real_r_bias[1]))
 
             desired_r_bias = result_dict["desired_xpos"][j] - rbt_tool - center
             desired_radius_buffer.append(np.linalg.norm(desired_r_bias))
-            desired_angle_buffer.append(np.arctan2(-desired_r_bias[0],desired_r_bias[1]))
+            desired_angle_buffer.append(np.arctan2(-desired_r_bias[0], desired_r_bias[1]))
 
         real_radius_buffer = np.array(real_radius_buffer)
         real_angle_buffer = np.array(real_angle_buffer)

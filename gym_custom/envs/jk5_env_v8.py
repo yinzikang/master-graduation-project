@@ -371,15 +371,15 @@ class Jk5StickRobotWithController(Jk5StickRobot):
         if not hasattr(self, 'viewer'):
             self.viewer_init(pause_start, view_force)
         self.viewer.render()
-        k = self.status["controller_parameter"]["K"][:3] / 50000
-        R = self.status["controller_parameter"]["SM"]
-        self.viewer.add_marker(pos=self.status["xpos"],  # Position
-                               mat=R,
-                               label=" ",  # Text beside the marker
-                               type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
-                               size=(k[0], k[1], k[2]),  # Size of the marker
-                               rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
-                               emission=1)  # RGBA of the marker
+        # k = self.status["controller_parameter"]["K"][:3] / 50000
+        # R = self.status["controller_parameter"]["SM"]
+        # self.viewer.add_marker(pos=self.status["xpos"],  # Position
+        #                        mat=R,
+        #                        label=" ",  # Text beside the marker
+        #                        type=mp.mjtGeom.mjGEOM_ELLIPSOID,  # Geomety type
+        #                        size=(k[0], k[1], k[2]),  # Size of the marker
+        #                        rgba=(84 / 255, 179 / 255, 69 / 255, 0.75),
+        #                        emission=1)  # RGBA of the marker
 
 
 # 机器人变阻抗控制

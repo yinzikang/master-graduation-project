@@ -74,7 +74,7 @@ plt.ylabel(r'Z position $\mathrm{(m)}$')
 plt.grid()
 if save_flag:
     plt.savefig(save_dir + '/surface xpos.png', dpi=600, bbox_inches='tight')
-if save_flag:
+if view_flag:
     plt.title('surface xpos')
 
 xpos_error_table_buffer1 = []
