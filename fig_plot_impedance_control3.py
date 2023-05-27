@@ -66,7 +66,7 @@ def draw_ellipsoid(k_r_p):
                                           emission=1)  # RGBA of the marker
 
 plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 10.5
+plt.rcParams['font.size'] = 12
 plt.rcParams['lines.linewidth'] = 2.0
 
 geom_name_list = ['base_link_geom', 'link1_geom', 'link2_geom', 'link3_geom', 'link4_geom', 'link5_geom', 'link6_geom',
@@ -155,7 +155,7 @@ for status_name in jk5_with_controller.status_list:
     admittance_buffer2[status_name] = np.array(admittance_buffer2[status_name])
 
 show_flag = True
-save_flag = False
+save_flag = True
 save_dir = './figs/different_frame'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)

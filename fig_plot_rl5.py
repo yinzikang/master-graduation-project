@@ -82,7 +82,7 @@ _, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
 env = gym.make(env_name, **rl_kwargs)
 env.reset()
 if render_flag:
-    env.viewer_init()
+    env.viewer_init(pause_start=True)
 
 R = 0
 # record_step_list = [0, 30, 50, 70]
@@ -171,4 +171,4 @@ for step in range(action_series.shape[0]):
     reward = reward / (sub_step + 1)
 
     if done:
-        break
+        input()

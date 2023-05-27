@@ -27,11 +27,15 @@ env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 test_name = 'cabinet surface with plan v7'
 
 rl_name = 'PPO'
-time_name = '04-30-17-20'
-# time_name = '05-15-11-11'
-path_name = test_name + '/' + rl_name + '/' + time_name + '/'
-logger_path = "eval_results/" + path_name + "best_model"
-save_dir = './figs/' + test_name
+# time_name = '04-30-17-20'
+# # time_name = '05-15-11-11'
+# path_name = test_name + '/' + rl_name + '/' + time_name + '/'
+# logger_path = "eval_results/" + path_name + "best_model"
+# save_dir = './figs/' + test_name
+# 优化前
+path_name = './gym_custom/rl_test_results/' + test_name + '/' + env_name + '/'
+logger_path = path_name
+save_dir = logger_path
 
 _, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
 env = gym.make(env_name, **rl_kwargs)

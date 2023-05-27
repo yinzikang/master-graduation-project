@@ -22,7 +22,7 @@ from gym_custom.envs.controller import AdmittanceController_v3, orientation_erro
     orientation_error_axis_angle_with_mat
 
 plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 10.5
+plt.rcParams['font.size'] = 12
 plt.rcParams['lines.linewidth'] = 2.0
 
 _, rbt_controller_kwargs, _ = env_kwargs('fig_plot')

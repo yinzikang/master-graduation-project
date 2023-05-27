@@ -27,21 +27,21 @@ env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 # test_name = 'cabinet surface with plan v7'
 # time_name = '04-30-17-20'
 # mode = 3
-# test_name = 'cabinet drawer open with plan'
-# time_name = '05-07-22-47'
-# mode = 3
-test_name = 'cabinet door open with plan'
-time_name = '05-09-15-56'
-mode = 2
+test_name = 'cabinet drawer open with plan'
+time_name = '05-07-22-47'
+mode = 3
+# test_name = 'cabinet door open with plan'
+# time_name = '05-09-15-56'
+# mode = 2
 rl_name = 'PPO'
 path_name = test_name + '/' + rl_name + '/' + time_name + '/'
 itr = 655360
 
 
-eval_flag = True
-save_fig = True
+eval_flag = False
+save_fig = False
 plot_fig = False
-render = False
+render = True
 n_eval_episodes = 1
 
 if mode == 1:  # 评估中间模型

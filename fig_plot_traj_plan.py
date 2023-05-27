@@ -11,7 +11,7 @@ Write typical usage example here
 4/22/23 8:17 PM   yinzikang      1.0         None
 """
 import os
-
+from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -66,7 +66,7 @@ for idx in range(1, len(qpos_l)):
     xpos_j[idx], _ = jk5.forward_kinematics(qpos_j[idx])
 
 plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 10.5
+plt.rcParams['font.size'] = 16
 plt.rcParams['lines.linewidth'] = 2.0
 
 i = 1
@@ -85,220 +85,222 @@ if save_flag:
 if show_flag:
     plt.title(r'$\alpha$')
 i += 1
-#
-# # 直线位置速度加速度
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xposture_l[:, 0], label=r'$x$')
-# plt.plot(xposture_l[:, 1], label=r'$y$')
-# plt.plot(xposture_l[:, 2], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'position $\mathrm{(m)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.1, 0.6])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/xpos_l.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xposture_l')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xvel_l[:, 0], label=r'$x$')
-# plt.plot(xvel_l[:, 1], label=r'$y$')
-# plt.plot(xvel_l[:, 2], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'velocity $\mathrm{(m/s)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.05, 0.1])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/xvel_l.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xvel_l')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xacc_l[:, 0], label=r'$x$')
-# plt.plot(xacc_l[:, 1], label=r'$y$')
-# plt.plot(xacc_l[:, 2], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'acceleration $\mathrm{(m/s^2)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.12, 0.12])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/xacc_l.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xacc_l')
-# i += 1
-#
-# # 圆弧位置速度加速度
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xposture_c[:, 0], label=r'$x$')
-# plt.plot(xposture_c[:, 1], label=r'$y$')
-# plt.plot(xposture_c[:, 2], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'position $\mathrm{(m)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.05, 0.55])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/xpos_c.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xposture_c')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xvel_c[:, 0], label=r'$x$')
-# plt.plot(xvel_c[:, 1], label=r'$y$')
-# plt.plot(xvel_c[:, 2], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel('velocity $\mathrm{(m/s)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.175, 0.15])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/xvel_c.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xvel_c')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xacc_c[:, 0], label=r'$x$')
-# plt.plot(xacc_c[:, 1], label=r'$y$')
-# plt.plot(xacc_c[:, 2], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'acceleration $\mathrm{(m/s^2)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.25, 0.2])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/xacc_c.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xacc_c')
-# i += 1
-#
-# # 姿态速度加速度
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xposture_c[:, 12], label=r'$x$')
-# plt.plot(xposture_c[:, 13], label=r'$y$')
-# plt.plot(xposture_c[:, 14], label=r'$z$')
-# plt.plot(xposture_c[:, 15], label=r'$w$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel('')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.05, 0.55])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/quat.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('quat')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xvel_c[:, 3], label=r'$x$')
-# plt.plot(xvel_c[:, 4], label=r'$y$')
-# plt.plot(xvel_c[:, 5], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel('velocity $\mathrm{(rad/s)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.175, 0.15])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/w.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xvel_r')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(xacc_c[:, 3], label=r'$x$')
-# plt.plot(xacc_c[:, 4], label=r'$y$')
-# plt.plot(xacc_c[:, 5], label=r'$z$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'acceleration $\mathrm{(rad/s^2)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.25, 0.2])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/wdot.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('xacc_r')
-# i += 1
-#
-# # 关节速度加速度
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(qpos_j[:, 0], label=r'$q1$')
-# plt.plot(qpos_j[:, 1], label=r'$q2$')
-# plt.plot(qpos_j[:, 2], label=r'$q3$')
-# plt.plot(qpos_j[:, 3], label=r'$q4$')
-# plt.plot(qpos_j[:, 4], label=r'$q5$')
-# plt.plot(qpos_j[:, 5], label=r'$q6$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'pos $\mathrm{(rad)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.05, 0.55])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/qpos.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('qpos')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(qvel_j[:, 0], label=r'$q1$')
-# plt.plot(qvel_j[:, 1], label=r'$q2$')
-# plt.plot(qvel_j[:, 2], label=r'$q3$')
-# plt.plot(qvel_j[:, 3], label=r'$q4$')
-# plt.plot(qvel_j[:, 4], label=r'$q5$')
-# plt.plot(qvel_j[:, 5], label=r'$q6$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel('velocity $\mathrm{(rad/s)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.175, 0.15])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/qvel.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('qvel')
-# i += 1
-#
-# plt.figure(i, figsize=(6, 4))
-# plt.plot(qacc_j[:, 0], label=r'$q1$')
-# plt.plot(qacc_j[:, 1], label=r'$q2$')
-# plt.plot(qacc_j[:, 2], label=r'$q3$')
-# plt.plot(qacc_j[:, 3], label=r'$q4$')
-# plt.plot(qacc_j[:, 4], label=r'$q5$')
-# plt.plot(qacc_j[:, 5], label=r'$q6$')
-# plt.legend(loc='upper right')
-# plt.xlabel('steps')
-# plt.ylabel(r'acceleration $\mathrm{(rad/s^2)}$')
-# plt.xlim([0, 2000])
-# # plt.ylim([-0.25, 0.2])
-# plt.grid()
-# if save_flag:
-#     plt.savefig(save_dir + '/qacc.png', dpi=600, bbox_inches='tight')
-# if show_flag:
-#     plt.title('qacc')
-# i += 1
+
+# 直线位置速度加速度
+plt.figure(i, figsize=(6, 4))
+plt.plot(xposture_l[:, 0], label=r'$x$')
+plt.plot(xposture_l[:, 1], label=r'$y$')
+plt.plot(xposture_l[:, 2], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'position $\mathrm{(m)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.1, 0.6])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/xpos_l.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xposture_l')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(xvel_l[:, 0], label=r'$x$')
+plt.plot(xvel_l[:, 1], label=r'$y$')
+plt.plot(xvel_l[:, 2], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'velocity $\mathrm{(m/s)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.05, 0.1])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/xvel_l.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xvel_l')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(xacc_l[:, 0], label=r'$x$')
+plt.plot(xacc_l[:, 1], label=r'$y$')
+plt.plot(xacc_l[:, 2], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'acceleration $\mathrm{(m/s^2)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.12, 0.12])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/xacc_l.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xacc_l')
+i += 1
+
+# 圆弧位置速度加速度
+plt.figure(i, figsize=(6, 4))
+plt.plot(xposture_c[:, 0], label=r'$x$')
+plt.plot(xposture_c[:, 1], label=r'$y$')
+plt.plot(xposture_c[:, 2], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'position $\mathrm{(m)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.05, 0.55])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/xpos_c.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xposture_c')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(xvel_c[:, 0], label=r'$x$')
+plt.plot(xvel_c[:, 1], label=r'$y$')
+plt.plot(xvel_c[:, 2], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel('velocity $\mathrm{(m/s)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.175, 0.15])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/xvel_c.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xvel_c')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(xacc_c[:, 0], label=r'$x$')
+plt.plot(xacc_c[:, 1], label=r'$y$')
+plt.plot(xacc_c[:, 2], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'acceleration $\mathrm{(m/s^2)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.25, 0.2])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/xacc_c.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xacc_c')
+i += 1
+
+# 姿态速度加速度
+plt.figure(i, figsize=(6, 4))
+plt.plot(xposture_c[:, 12], label=r'$x$')
+plt.plot(xposture_c[:, 13], label=r'$y$')
+plt.plot(xposture_c[:, 14], label=r'$z$')
+plt.plot(xposture_c[:, 15], label=r'$w$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel('quat')
+plt.xlim([0, 2000])
+# plt.ylim([-0.05, 0.55])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/quat.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('quat')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(xvel_c[:, 3], label=r'$x$')
+plt.plot(xvel_c[:, 4], label=r'$y$')
+plt.plot(xvel_c[:, 5], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel('velocity $\mathrm{(rad/s)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.175, 0.15])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/w.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xvel_r')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(xacc_c[:, 3], label=r'$x$')
+plt.plot(xacc_c[:, 4], label=r'$y$')
+plt.plot(xacc_c[:, 5], label=r'$z$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'acceleration $\mathrm{(rad/s^2)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.25, 0.2])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/wdot.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('xacc_r')
+i += 1
+
+# 关节速度加速度
+plt.figure(i, figsize=(6, 4))
+plt.plot(qpos_j[:, 0], label=r'$q1$')
+plt.plot(qpos_j[:, 1], label=r'$q2$')
+plt.plot(qpos_j[:, 2], label=r'$q3$')
+plt.plot(qpos_j[:, 3], label=r'$q4$')
+plt.plot(qpos_j[:, 4], label=r'$q5$')
+plt.plot(qpos_j[:, 5], label=r'$q6$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'pos $\mathrm{(rad)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.05, 0.55])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/qpos.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('qpos')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(qvel_j[:, 0], label=r'$q1$')
+plt.plot(qvel_j[:, 1], label=r'$q2$')
+plt.plot(qvel_j[:, 2], label=r'$q3$')
+plt.plot(qvel_j[:, 3], label=r'$q4$')
+plt.plot(qvel_j[:, 4], label=r'$q5$')
+plt.plot(qvel_j[:, 5], label=r'$q6$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel('velocity $\mathrm{(rad/s)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.175, 0.15])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/qvel.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('qvel')
+i += 1
+
+plt.figure(i, figsize=(6, 4))
+plt.plot(qacc_j[:, 0], label=r'$q1$')
+plt.plot(qacc_j[:, 1], label=r'$q2$')
+plt.plot(qacc_j[:, 2], label=r'$q3$')
+plt.plot(qacc_j[:, 3], label=r'$q4$')
+plt.plot(qacc_j[:, 4], label=r'$q5$')
+plt.plot(qacc_j[:, 5], label=r'$q6$')
+plt.legend(loc='upper right')
+plt.xlabel('steps')
+plt.ylabel(r'acceleration $\mathrm{(rad/s^2)}$')
+plt.xlim([0, 2000])
+# plt.ylim([-0.25, 0.2])
+plt.grid()
+if save_flag:
+    plt.savefig(save_dir + '/qacc.png', dpi=600, bbox_inches='tight')
+if show_flag:
+    plt.title('qacc')
+i += 1
 
 # 笛卡尔空间与关节空间路径对比
-fig = plt.figure(i, figsize=(6, 6))
+plt.rcParams['font.size'] = 10.5
+songti = FontProperties(fname="/usr/share/fonts/truetype/windows-font/simfang.ttf", size=10.5)
+fig = plt.figure(i, figsize=(4, 4))
 ax = fig.add_subplot(111, projection='3d')
-ax.plot(xposture_l[:, 0], xposture_l[:, 1], xposture_l[:, 2], label='line-shape path in cartisian space')
-ax.plot(xposture_c[:, 0], xposture_c[:, 1], xposture_c[:, 2], label='circle-shape path in cartisian space')
-ax.plot(xpos_j[:, 0], xpos_j[:, 1], xpos_j[:, 2], label='path in joint space')
-plt.legend(loc='upper right')
+ax.plot(xposture_l[:, 0], xposture_l[:, 1], xposture_l[:, 2], label='笛卡尔空间直线轨迹规划')
+ax.plot(xposture_c[:, 0], xposture_c[:, 1], xposture_c[:, 2], label='笛卡尔空间圆弧轨迹规划')
+ax.plot(xpos_j[:, 0], xpos_j[:, 1], xpos_j[:, 2], label='关节空间轨迹规划')
+plt.legend(loc='upper right',prop=songti)
 ax.set_xlabel(r'x $\mathrm{(m)}$')
 ax.set_ylabel(r'y $\mathrm{(m)}$')
 ax.set_zlabel(r'z $\mathrm{(m)}$')

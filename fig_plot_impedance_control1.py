@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""毕业论文中各种阻抗控制的图对比
+"""毕业论文中各种阻抗控制的位置图对比
 
 self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][0] = 3
 self.data.xfrc_applied[mp.mj_name2id(self.mjc_model, mp.mjtObj.mjOBJ_BODY, 'dummy_body')][1] = 2
@@ -22,7 +22,7 @@ from gym_custom.envs.jk5_env_v7 import Jk5StickRobotWithController, env_kwargs
 from gym_custom.envs.controller import AdmittanceController_v2, ImpedanceController_v2
 
 plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 10.5
+plt.rcParams['font.size'] = 12
 plt.rcParams['lines.linewidth'] = 2.0
 
 _, rbt_controller_kwargs, _ = env_kwargs('fig_plot')
@@ -56,7 +56,7 @@ for status_name in jk5_with_controller.status_list:
     admittance_buffer[status_name] = np.array(admittance_buffer[status_name])
 
 show_flag = True
-save_flag = False
+save_flag = True
 save_dir = './figs/different_control'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -64,7 +64,7 @@ if not os.path.exists(save_dir):
 i = 0
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot(impedance_buffer["xpos"][:, 0], label='ix')
 plt.plot(impedance_buffer["xpos"][:, 1], label='iy')
 plt.plot(impedance_buffer["xpos"][:, 2], label='iz')
@@ -85,7 +85,7 @@ if show_flag:
     plt.title('pos')
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot(impedance_buffer["xpos"][:, 0], label='ix')
 plt.plot(impedance_buffer["xpos"][:, 1], label='iy')
 plt.plot(impedance_buffer["xpos"][:, 2], label='iz')
@@ -106,13 +106,13 @@ if show_flag:
     plt.title('pos')
 
 i += 1
-plt.figure(i)
-plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 0], label='ix-dx')
-plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 1], label='iy-dy')
-plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 2], label='iz-dz')
-plt.plot((admittance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 0], label='ax-dx')
-plt.plot((admittance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 1], label='ay-dy')
-plt.plot((admittance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 2], label='az-dz')
+plt.figure(i, figsize=(6, 4))
+plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 0], label='ix')
+plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 1], label='iy')
+plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 2], label='iz')
+plt.plot((admittance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 0], label='ax')
+plt.plot((admittance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 1], label='ay')
+plt.plot((admittance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 2], label='az')
 plt.legend(loc='upper right')
 plt.xlabel('steps')
 plt.ylabel(r'position error $\mathrm{(m)}$')
@@ -124,7 +124,7 @@ if show_flag:
     plt.title('pos error')
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 0], label='ix-dx')
 plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 1], label='iy-dy')
 plt.plot((impedance_buffer["xpos"] - impedance_buffer["desired_xpos"])[:, 2], label='iz-dz')
@@ -142,7 +142,7 @@ if show_flag:
     plt.title('pos error')
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot(impedance_buffer["xvel"][:, 0], label='ix')
 plt.plot(impedance_buffer["xvel"][:, 1], label='iy')
 plt.plot(impedance_buffer["xvel"][:, 2], label='iz')
@@ -163,7 +163,7 @@ if show_flag:
     plt.title('vel')
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot(impedance_buffer["xvel"][:, 0], label='ix')
 plt.plot(impedance_buffer["xvel"][:, 1], label='iy')
 plt.plot(impedance_buffer["xvel"][:, 2], label='iz')
@@ -184,7 +184,7 @@ if show_flag:
     plt.title('vel')
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot(jk5_with_controller.control_frequency * np.diff(impedance_buffer["xvel"][:, 0], axis=0), label='ix')
 plt.plot(jk5_with_controller.control_frequency * np.diff(impedance_buffer["xvel"][:, 1], axis=0), label='iy')
 plt.plot(jk5_with_controller.control_frequency * np.diff(impedance_buffer["xvel"][:, 2], axis=0), label='iz')
@@ -205,7 +205,7 @@ if show_flag:
     plt.title('acc')
 
 i += 1
-plt.figure(i)
+plt.figure(i, figsize=(6, 4))
 plt.plot(jk5_with_controller.control_frequency * np.diff(impedance_buffer["xvel"][:, 0], axis=0), label='ix')
 plt.plot(jk5_with_controller.control_frequency * np.diff(impedance_buffer["xvel"][:, 1], axis=0), label='iy')
 plt.plot(jk5_with_controller.control_frequency * np.diff(impedance_buffer["xvel"][:, 2], axis=0), label='iz')

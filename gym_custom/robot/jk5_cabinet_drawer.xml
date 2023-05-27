@@ -41,6 +41,10 @@
                 <inertial pos="0 0 0" mass="1" diaginertia="0.1 0.1 0.1"/>
                 <joint name="drawer joint" type="slide" pos="0 0 0" axis="1 0 0" range="0 0.3" limited="false"
                        damping="10" frictionloss="10"/>
+<!--                <site name="d_x" fromto="0.19 0.2 0.055 0.09 0.2 0.055" rgba="1 0 0 1" size="0.01 0.1" type="cylinder"/>-->
+<!--                <site name="d_y" fromto="0.19 0.2 0.055 0.19 0.1 0.055" rgba="0 1 0 1" size="0.01 0.1" type="cylinder"/>-->
+<!--                <site name="d_z" fromto="0.19 0.2 0.055 0.19 0.2 0.155" rgba="0 0 1 1" size="0.01 0.1" type="cylinder"/>-->
+
             </body>
             <!--门任务。门转轴位于0.8-0.2+0.0075，-0.1135-0.19,0.2+0.22。0.6075,-0.3035,0.42。
             长偏置0.19+0.15,高偏置0.0175+0.0075。即0.34,0.025。两者的斜边为半径sqrt(0.34**2+0.025**2)

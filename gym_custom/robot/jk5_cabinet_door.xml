@@ -62,6 +62,9 @@
                           mass="2.43455" diaginertia="0.0913751 0.0521615 0.043714"/>
                 <joint name="door joint" pos="0 0.19 0" axis="0 0 1" range="0.0 1.5707" limited="true"
                        damping="1" frictionloss="1"/>
+<!--                <site name="d_x" fromto="0.0275 -0.15 0. 0.01283371 0.049461525 0." rgba="1 0 0 1" size="0.01 0.1" type="cylinder"/>-->
+<!--                <site name="d_y" fromto="0.0275 -0.15 0. -0.1719615 -0.1353337113 0." rgba="0 1 0 1" size="0.01 0.1" type="cylinder"/>-->
+<!--                <site name="d_z" fromto="0.0275 -0.15 0. 0.0275 -0.15 0.2" rgba="0 0 1 1" size="0.01 0.1" type="cylinder"/>-->
             </body>
             <!--无关接触-->
             <body name="bottem board" pos="0 0 0.025">

@@ -27,18 +27,22 @@ env_name = 'TrainEnvVariableStiffnessAndPostureAndSM_v2-v8'
 test_name = 'cabinet door open with plan'
 
 rl_name = 'PPO'
-# time_name = '05-10-10-01'
-time_name = '05-09-15-56'
-path_name = test_name + '/' + rl_name + '/' + time_name + '/'
-# logger_path = "eval_results/" + path_name + "best_model"
-logger_path = "eval_results/" + path_name + "model"
-save_dir = './figs/' + test_name
+# # time_name = '05-10-10-01'
+# time_name = '05-09-15-56'
+# path_name = test_name + '/' + rl_name + '/' + time_name + '/'
+# # logger_path = "eval_results/" + path_name + "best_model"
+# logger_path = "eval_results/" + path_name + "model"
+# save_dir = './figs/' + test_name
+# 优化前
+path_name = './gym_custom/rl_test_results/' + test_name + '/' + env_name + '/'
+logger_path = path_name
+save_dir = logger_path
 
 _, _, rl_kwargs = env_kwargs(test_name, save_flag=False)
 env = gym.make(env_name, **rl_kwargs)
 result_dict = load_episode(logger_path)
 
-save_flag = False
+save_flag = True
 view_flag = True
 
 duration = 2000
@@ -72,10 +76,10 @@ plt.plot([pos_door[-1, 0], center[0]], [pos_door[-1, 1], center[1]])
 plt.plot(pos_init[:, 0] - rbt_tool[0], pos_init[:, 1] - rbt_tool[1], label='desired path')
 plt.plot([pos_init[0, 0] - rbt_tool[0], center[0]], [pos_init[0, 1] - rbt_tool[1], center[1]])
 plt.plot([pos_init[-1, 0] - rbt_tool[0], center[0]], [pos_init[-1, 1] - rbt_tool[1], center[1]])
-# 修正后轨迹
-plt.plot(pos_adjusted[:, 0] - rbt_tool[0], pos_adjusted[:, 1] - rbt_tool[1], label='path adjusted by action')
-plt.plot([pos_adjusted[0, 0] - rbt_tool[0], center[0]], [pos_adjusted[0, 1] - rbt_tool[1], center[1]])
-plt.plot([pos_adjusted[-1, 0] - rbt_tool[0], center[0]], [pos_adjusted[-1, 1] - rbt_tool[1], center[1]])
+# # 修正后轨迹
+# plt.plot(pos_adjusted[:, 0] - rbt_tool[0], pos_adjusted[:, 1] - rbt_tool[1], label='path adjusted by action')
+# plt.plot([pos_adjusted[0, 0] - rbt_tool[0], center[0]], [pos_adjusted[0, 1] - rbt_tool[1], center[1]])
+# plt.plot([pos_adjusted[-1, 0] - rbt_tool[0], center[0]], [pos_adjusted[-1, 1] - rbt_tool[1], center[1]])
 # 实际轨迹
 plt.plot(pos_real[:, 0] - rbt_tool[0], pos_real[:, 1] - rbt_tool[1], label='actual path')
 plt.plot([pos_real[0, 0] - rbt_tool[0], center[0]], [pos_real[0, 1] - rbt_tool[1], center[1]])
@@ -119,7 +123,7 @@ real_angle = np.array(real_angle)
 i += 1
 plt.figure(i)
 plt.plot(init_radius, label='desired radius')
-plt.plot(adjusted_radius, label='radius adjusted by action')
+# plt.plot(adjusted_radius, label='radius adjusted by action')
 plt.plot(real_radius, label='actual radius')
 plt.legend(loc='lower left')
 plt.xlabel('steps')
